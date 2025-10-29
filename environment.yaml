@@ -1,0 +1,17 @@
+name: fluorescence-bpm
+channels:
+  - conda-forge
+  - pytorch
+dependencies:
+  - python=3.10
+  - pytorch::pytorch
+  - pytorch::torchvision
+  - numpy
+  - scipy
+  - matplotlib
+  - tqdm
+  - scikit-image
+  - tifffile
+  - pip
+  - pip:
+    - -e .
