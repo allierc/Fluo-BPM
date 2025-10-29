@@ -13,10 +13,10 @@ run_simulation(
     z_min=0.0,
     z_max=128 * 1.989,  # 254.6 μm
     nm=1.33,
-    na=0.5,
+    na=0.95,
     device='cuda:0',
     stochastic=True,     # STORM mode
-    sparsity=0.01,      # 0.5% active per frame
+    sparsity=0.01,      # 1% active per frame
     n_iterations=1000,
     output_path='./output'
 )
