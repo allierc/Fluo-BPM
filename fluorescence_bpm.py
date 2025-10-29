@@ -8,11 +8,7 @@ import torch.nn.functional as nf
 from tqdm import tqdm
 from skimage import io
 from tifffile import imwrite
-from dataclasses import dataclass
-from typing import List
-
-
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List
 
 
@@ -31,6 +27,8 @@ class Config:
     fluorescence_path: str = './data/Fluo_2_30.tif'
     directions: List[List[float]] = None  # Illumination directions
     output_path: str = './output'
+    stochastic: bool = False      # Enable STORM/PALM mode
+    sparsity: float = 0.005       # Fraction active fluorophores (0.5%)
     
     def __post_init__(self):
         if self.directions is None:
@@ -59,7 +57,7 @@ class FluorescenceBPM(torch.nn.Module):
     
     Models:
     - Heterogeneous light propagation (varying refractive index)
-    - Incoherent fluorescence emission
+    - Incoherent fluorescence emission (standard or stochastic STORM/PALM)
     - Pupil function filtering
     - Split-step Fourier propagation
     """
@@ -143,10 +141,7 @@ class FluorescenceBPM(torch.nn.Module):
         munu = torch.sqrt(mux_inc**2 + muy_inc**2).reshape(self.Nx, self.Ny, 1)
         pupil_mask = (munu < (self.na / self.lbda)).float().squeeze()
         
-        pupil = torch.complex(
-            pupil_mask, 
-            torch.zeros_like(pupil_mask)
-        )
+        pupil = torch.complex(pupil_mask, torch.zeros_like(pupil_mask))
         
         # Angle correction
         muxy = np.sqrt(fdir[0]**2 + fdir[1]**2) * self.lbda / self.nm
@@ -161,8 +156,15 @@ class FluorescenceBPM(torch.nn.Module):
         field = torch.zeros((self.Nx, self.Ny), dtype=torch.cfloat, device=self.device)
         coef = torch.tensor(self.dz * k0 / cos_theta * 1.j, dtype=torch.cfloat, device=self.device)
         
+        # Stochastic activation (STORM/PALM mode)
+        if self.config.stochastic:
+            activation_mask = (torch.rand_like(self.fluo) < self.config.sparsity).float()
+            fluo_active = self.fluo * activation_mask
+        else:
+            fluo_active = self.fluo
+        
         dn_layers = self.dn.unbind(dim=2)
-        fluo_layers = self.fluo.unbind(dim=2)
+        fluo_layers = fluo_active.unbind(dim=2)
         
         # Forward propagation through volume
         for i in range(self.Nz):
@@ -201,7 +203,9 @@ def run_simulation(
     z_min: float = -15.0,
     z_max: float = 15.0,
     device: str = 'cuda:0',
-    directions: List[List[float]] = None
+    directions: List[List[float]] = None,
+    stochastic: bool = False,
+    sparsity: float = 0.005
 ):
     """
     Run fluorescence simulation with Monte Carlo sampling.
@@ -220,6 +224,8 @@ def run_simulation(
         z_max: Volume end [μm]
         device: PyTorch device
         directions: List of illumination directions [[x,y,z], ...]
+        stochastic: Enable STORM/PALM mode (sparse activation)
+        sparsity: Fraction of active fluorophores per frame
     """
     config = Config(
         nm=nm, na=na, dx=dx, lbda=lbda, dz=dz,
@@ -227,7 +233,9 @@ def run_simulation(
         refractive_index_path=refractive_index_path,
         fluorescence_path=fluorescence_path,
         directions=directions,
-        output_path=output_path
+        output_path=output_path,
+        stochastic=stochastic,
+        sparsity=sparsity
     )
     
     # Initialize model
@@ -236,7 +244,11 @@ def run_simulation(
     # Accumulate incoherent intensity
     I_total = torch.zeros_like(model.dn)
     
-    print(f"Running {n_iterations} iterations...")
+    mode = "STORM/PALM" if stochastic else "Standard"
+    print(f"Running {n_iterations} iterations ({mode} mode)...")
+    if stochastic:
+        print(f"Sparsity: {sparsity*100:.2f}% active fluorophores per frame")
+    
     for n in tqdm(range(n_iterations)):
         # Random phase for incoherent emission
         phi = torch.rand(
