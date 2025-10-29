@@ -1,7 +1,7 @@
 
 # Fluorescence BPM Simulation
 
-![ouput](assets/fluo.png)
+![ouput](assets/fluo.gif)
 
 
 Differentiable beam propagation method (BPM) for fluorescence microscopy simulation in heterogeneous biological tissue.
