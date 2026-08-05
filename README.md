@@ -86,11 +86,24 @@ python analyze_run.py log/*                        # measure against ground trut
 python archive_runs.py                             # freeze into archive/
 ```
 
+Parameterized sweeps are one spec file each:
+
+```bash
+python run_sweep.py -s config/sweeps/MC_sweep.yaml     # Monte-Carlo draws
+python run_sweep.py -s config/sweeps/RI_sweep.yaml     # cell refractive index
+python run_sweep.py -s config/sweeps/PSF_sweep.yaml    # numerical aperture
+```
+
 The YAML covers the volume and phantom (cells, spheroid or a bead grid), the
-refractive-index landscape of the medium, the optics (NA, wavelength, Zernike
-pupil aberration), the emission Monte Carlo, and the detector (binning to the
-delivered voxel, Poisson and read noise). See [DATASET.md](DATASET.md) for the
-datasets, their measured properties, and the array/registration conventions.
+refractive-index landscape of the medium and inside the cells, the optics (NA,
+wavelength, Zernike pupil aberration), the emission Monte Carlo, and the detector
+(binning to the delivered voxel, Poisson and read noise).
+
+- [RUNNING.md](RUNNING.md) — how to run the sweeps and change the sample or the imaging
+- [archive/note/note.pdf](archive/note/note.pdf) — the forward model in one page, then
+  the three sweeps measured against it
+- [ACQUISITION.md](ACQUISITION.md) — the reference acquisition the defaults follow
+- [DATASET.md](DATASET.md) — dataset conventions and measured properties
 
 Two constraints the engine enforces or documents, both learned the hard way:
 
