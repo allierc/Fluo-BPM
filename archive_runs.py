@@ -22,8 +22,8 @@ COPY = ['config.yaml', 'summary.md', 'summary.json', 'analysis.md', 'analysis.js
         'fluo_projections.png', 'fluo_psf_grid.png']
 
 # archive number -> log folder, in the order the experiments were done
-ORDER = ['beads_psf', 'beads_psf_aberrated', 'cells_dense', 'cells_dense_noisefree',
-         'cells_dense_aberrated', 'cells_spheroid']
+ORDER = ['beads_psf', 'beads_psf_aberrated', 'cells_dense',
+         'cells_dense_aberrated', 'cells_spheroid', 'cells_real_like']
 
 
 def git_rev():

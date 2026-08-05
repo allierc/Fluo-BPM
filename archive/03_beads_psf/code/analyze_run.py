@@ -177,8 +177,9 @@ def _markdown(path, r):
         f"{r['efficiency_median']:.1f} photons per unit",
         f"- detection efficiency, surface / deepest octant: "
         f"{r['efficiency_surface_vs_deep']:.2f}"
-        + ("  (flat: index-matched sample)" if r['efficiency_surface_vs_deep'] > 0.9
-           else "  (light from shallow cells crosses more tissue)"),
+        + ("  (no measurable depth trend across this volume)"
+           if r['efficiency_surface_vs_deep'] > 0.9
+           else "  (light from shallow cells crosses more refracting tissue)"),
         "- brightness recovery: "
         + ('peak vs true brightness r = %.3f' % r['brightness_correlation_peak']
            if r['brightness_correlation_peak'] is not None
@@ -188,8 +189,10 @@ def _markdown(path, r):
         f"- offset of the brightest voxel from the true centre: lateral median "
         f"{r['offset_lateral_um_median']:.2f} um (p90 {r['offset_lateral_um_p90']:.2f}), "
         f"axial median {r['offset_axial_um_median']:.1f} um (p90 "
-        f"{r['offset_axial_um_p90']:.1f}); the axial figure is bounded below by the "
-        f"{r['voxel_z_um']:.0f} um voxel",
+        f"{r['offset_axial_um_p90']:.1f}). The axial figure is quantized by the "
+        f"{r['voxel_z_um']:.0f} um voxel and grows with cell radius, since the search "
+        f"window spans the cell (+-r) and any plane inside a big cell can be the "
+        f"brightest",
         f"- nearest-neighbour distance median "
         f"{r['nearest_neighbour_um_median']:.1f} um; "
         f"{r['crowded_fraction']*100:.1f}% of cells closer than the axial resolution "

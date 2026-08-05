@@ -1,26 +1,27 @@
-description: 'Ground-truth dataset, main variant, NOISE OFF. 2000 spherical cells
-    (radius 5-9 um, so 10-18 um across) with lognormal brightness in a 256 x 256 x
-    256 um volume, imaged at NA 0.5 and delivered on a 1 x 1 x 4 um voxel grid with
-    shot and read noise. Cells refract (dn = 0.02) so the PSF degrades with depth;
-    the medium is index-matched.
+description: 'Matched by eye to a real widefield plane the user supplied: cells spanning
+    about an eighth of the frame, nearly touching, a wide brightness spread with a
+    few near-saturated cells, heavy out-of-focus haze, and visible grain on that haze.
+    Scaled from the reference by pixel count rather than by microns: cells are ~30
+    px in diameter with ~10 across the frame, which on the 1 um delivered grid of
+    the other configurations means a 320 px field and 24-32 um cells.
 
     '
-seed: 42
-config_file: config/cells_dense_noisefree.yaml
+seed: 11
+config_file: config/cells_real_like.yaml
 volume:
-    nx: 512
-    ny: 512
-    nz: 256
+    nx: 640
+    ny: 640
+    nz: 64
     dx: 0.5
     dz: 1.0
 phantom:
     type: cells
-    n_cells: 2000
+    n_cells: 130
     radius_um:
-    - 5.0
-    - 9.0
-    min_gap_um: 0.5
-    edge_um: 0.4
+    - 12.0
+    - 16.0
+    min_gap_um: 0.2
+    edge_um: 0.3
     dn_cell: 0.02
     brightness:
         dist: lognormal
@@ -28,8 +29,8 @@ phantom:
         low: 0.3
         high: 3.0
         clip:
-        - 0.08
-        - 4.0
+        - 0.3
+        - 8.0
     hollow: false
     shell_um: 1.5
     margin_um: 1.0
@@ -72,9 +73,9 @@ camera:
     bin_xy: 2
     bin_z: 4
     photons_peak: 300.0
-    background_photons: 5.0
-    poisson: false
-    read_noise_e: 0.0
+    background_photons: 6.0
+    poisson: true
+    read_noise_e: 3.0
     offset: 100.0
     gain: 1.0
     bit_depth: 16
@@ -86,7 +87,7 @@ engine:
     save_gt_volume: true
     save_label_volume: true
     save_gif: true
-    gif_gamma: 0.6
+    gif_gamma: 0.5
     gif_duration_ms: 80
     gif_max_frames: 120
     psf_report: false

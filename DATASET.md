@@ -29,7 +29,9 @@ that image plane `k` and phantom plane `k` are the same physical depth.
 
 ## Files per dataset
 
-Everything that holds fluorescence — volume or animation — is named `fluo_*`.
+Everything that holds fluorescence — volume or animation — is named `fluo_*`. Every
+run ships both a noisy and a noise-free stack of the same sample, so there is no
+separate noise-free configuration: `fluo_without_noise.tif` *is* the ablation.
 
 | file | contents |
 |---|---|
@@ -50,8 +52,9 @@ volumes, plus the code that produced them.
 
 ## The datasets
 
-All at 1 x 1 x 4 um voxels, 256 x 256 x 64 delivered stack, from a
-256 x 256 x 256 um volume simulated at 0.5 um lateral / 1 um axial. NA 0.5,
+All at 1 x 1 x 4 um voxels. The first five are a 256 x 256 x 64 delivered stack from
+a 256 x 256 x 256 um volume, simulated at 0.5 um lateral / 1 um axial;
+`cells_real_like` is a 320 x 320 x 24 stack from a 320 x 320 x 64 um volume. NA 0.5,
 lambda 0.532 um, n 1.33: lateral resolution 0.53 um, axial 5.45 um. Widefield
 detection, so there is no optical sectioning and every plane carries out-of-focus
 light from the whole volume.
@@ -59,9 +62,9 @@ light from the whole volume.
 | config | contents |
 |---|---|
 | `cells_dense` | 2000 cells, radius 5–9 um (10–18 um across), lognormal brightness spanning ~30x, index contrast 0.02, shot + read noise. The main variant. |
-| `cells_dense_noisefree` | identical sample and optics, Poisson and read noise off. The noise ablation: same seed, so the only difference is the detector. |
 | `cells_dense_aberrated` | same 2000-cell sample in a smooth random index landscape (dn_rms 0.004, 25 um correlation) behind an aberrated pupil (0.3 waves spherical, 0.15 astigmatism, 0.1 coma). PSF varies with x, y and z. |
 | `cells_spheroid` | 550 cells of radius 5–7 um packed in a single 70 um ball — near the random-sequential-adsorption limit for that geometry. Light from the far side crosses the whole aggregate. |
+| `cells_real_like` | matched by eye to a real widefield plane: ~30 px cell diameter on a 320 px field, near-touching (21% fill), 64 um slab, lower photon budget so grain shows on the haze. Scale is set by pixel count, not by a measured um/px. |
 | `beads_psf` | 5 x 5 x 13 sub-resolution beads, index matched, unaberrated. The PSF reference. |
 | `beads_psf_aberrated` | the same grid through the aberrated configuration, for the field dependence of the PSF. |
 
@@ -75,9 +78,9 @@ asserting them:
 | `beads_psf` | 325 | 0.97 | n/a | 0.00 um | 21.0 um | 0.52 +- 0.00 um |
 | `beads_psf_aberrated` | 325 | 0.50 | n/a | 1.00 um | 21.0 um | 0.71 +- 0.11 um |
 | `cells_dense` | 2000 | 0.77 | 0.672 | 2.24 um | 15.3 um | — |
-| `cells_dense_noisefree` | 2000 | 0.77 | 0.672 | 2.24 um | 15.3 um | — |
 | `cells_dense_aberrated` | 2000 | 0.85 | 0.661 | 2.83 um | 15.3 um | — |
 | `cells_spheroid` | 550 | 0.78 | 0.526 | 2.24 um | 11.8 um | — |
+| `cells_real_like` | 130 | 1.07 | 0.872 | 2.00 um | 28.4 um | — |
 
 Reading of those columns:
 
