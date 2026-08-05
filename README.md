@@ -80,10 +80,8 @@ differing brightness, imaged and delivered on a chosen voxel grid — one YAML
 describes the whole experiment and the engine writes one log folder:
 
 ```bash
-python simulate.py -c config/cells_dense.yaml     # -> log/cells_dense/
-./run_all.sh                                      # every config in config/
-python analyze_run.py log/*                        # measure against ground truth
-python archive_runs.py                             # freeze into archive/
+python simulate.py -c config/base/reference_optics.yaml -o log/my_run
+python analyze_run.py log/my_run                  # measure against ground truth
 ```
 
 Parameterized sweeps are one spec file each:
