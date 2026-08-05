@@ -41,6 +41,10 @@ output/*
 !output/.gitkeep
 temp/
 
+# Engine run folders: the volumes are hundreds of MB each. archive/ keeps the
+# animations, figures, ground truth and code for every run and is tracked.
+log/
+
 # IDE
 .vscode/
 .idea/

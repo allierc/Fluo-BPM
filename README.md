@@ -73,6 +73,36 @@ phi = torch.rand((512, 512), device='cuda:0') * 2 * torch.pi
 I = model(field_number=0, phi=phi)
 ```
 
+## Dataset engine (config driven)
+
+For generating ground-truth datasets — a volume filled with spherical cells of
+differing brightness, imaged and delivered on a chosen voxel grid — one YAML
+describes the whole experiment and the engine writes one log folder:
+
+```bash
+python simulate.py -c config/cells_dense.yaml     # -> log/cells_dense/
+./run_all.sh                                      # every config in config/
+python analyze_run.py log/*                        # measure against ground truth
+python archive_runs.py                             # freeze into archive/
+```
+
+The YAML covers the volume and phantom (cells, spheroid or a bead grid), the
+refractive-index landscape of the medium, the optics (NA, wavelength, Zernike
+pupil aberration), the emission Monte Carlo, and the detector (binning to the
+delivered voxel, Poisson and read noise). See [DATASET.md](DATASET.md) for the
+datasets, their measured properties, and the array/registration conventions.
+
+Two constraints the engine enforces or documents, both learned the hard way:
+
+- `volume.dx` must satisfy `dx < lbda/(2*NA)`, else the pupil mask is larger than
+  the sampled k-space, passes everything, and the simulation has no optical
+  sectioning — the configuration is rejected with the maximum usable NA.
+- Image plane `k` is focused on sample plane `k`. The core returns the focal stack
+  indexed from the exit face inward, so an unflipped stack is mirrored in z
+  against the sample; `test_registration.py` pins this.
+
+Runs are byte-for-byte repeatable at a fixed `seed` (`test_determinism.py`).
+
 ## Data Format
 
 Place TIFF files in `./data/`:

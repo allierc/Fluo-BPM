@@ -1,0 +1,62 @@
+description: >
+  Hard variant: same 2000-cell volume, but embedded in a smooth random refractive
+  index landscape (dn_rms 0.004, 25 um correlation) and imaged through an
+  aberrated pupil (0.3 waves spherical, 0.15 astigmatism). The PSF then varies
+  with x, y and z, which is the case a shift-invariant reconstruction cannot fit.
+seed: 42
+
+volume:
+  nx: 512
+  ny: 512
+  nz: 256
+  dx: 0.5
+  dz: 1.0
+
+phantom:
+  type: cells
+  n_cells: 2000
+  radius_um: [5.0, 9.0]
+  min_gap_um: 0.5
+  edge_um: 0.4
+  dn_cell: 0.02
+  margin_um: 1.0
+  brightness:
+    dist: lognormal
+    sigma: 0.6
+    clip: [0.08, 4.0]
+
+medium:
+  type: smooth_random
+  dn_rms: 0.004
+  correlation_um: 25.0
+  correlation_z_um: 40.0
+
+optics:
+  nm: 1.33
+  na: 0.5
+  lbda: 0.532
+  zernike:
+    spherical: 0.3
+    astig_0: 0.15
+    coma_x: 0.1
+
+emission:
+  n_iterations: 200
+  stochastic: false
+
+camera:
+  bin_xy: 2
+  bin_z: 4
+  photons_peak: 300.0
+  background_photons: 5.0
+  poisson: true
+  read_noise_e: 2.0
+  offset: 100.0
+  bit_depth: 16
+
+engine:
+  device: cuda:1
+  log_dir: ./log
+  save_gt_volume: true
+  save_label_volume: true
+  save_gif: true

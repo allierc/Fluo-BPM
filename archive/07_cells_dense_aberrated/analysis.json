@@ -1,0 +1,31 @@
+{
+  "name": "cells_dense_aberrated",
+  "n_cells": 2000,
+  "efficiency_median": 129.27597264915585,
+  "efficiency_depth_profile": [
+    0.8452731231132503,
+    0.877076385287838,
+    0.8301075389550211,
+    0.9474146290787573,
+    0.9570245484932867,
+    0.9890641470080822,
+    0.9919478983527076,
+    1.0
+  ],
+  "efficiency_surface_vs_deep": 0.8452731231132503,
+  "brightness_correlation_peak": 0.46723178054127495,
+  "brightness_correlation_integrated": 0.6609091893442792,
+  "offset_lateral_um_median": 2.8284271247461903,
+  "offset_lateral_um_p90": 4.242640687119285,
+  "offset_axial_um_median": 4.0,
+  "offset_axial_um_p90": 8.0,
+  "nearest_neighbour_um_median": 15.341781592016787,
+  "crowded_fraction": 0.0,
+  "axial_resolution_um": 5.4528651080930315,
+  "voxel_z_um": 4.0,
+  "noise": {
+    "measured_std": 10.894679069519043,
+    "predicted_std": 10.8912935256958,
+    "ratio": 1.0003108486439425
+  }
+}

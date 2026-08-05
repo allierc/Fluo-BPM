@@ -1,0 +1,31 @@
+{
+  "name": "cells_spheroid",
+  "n_cells": 550,
+  "efficiency_median": 136.3335625134173,
+  "efficiency_depth_profile": [
+    NaN,
+    NaN,
+    0.777361389860365,
+    0.7435083490406228,
+    0.8682227725077698,
+    1.0,
+    NaN,
+    NaN
+  ],
+  "efficiency_surface_vs_deep": 0.777361389860365,
+  "brightness_correlation_peak": 0.39901407283537976,
+  "brightness_correlation_integrated": 0.5256278174721849,
+  "offset_lateral_um_median": 2.23606797749979,
+  "offset_lateral_um_p90": 3.605551275463989,
+  "offset_axial_um_median": 4.0,
+  "offset_axial_um_p90": 8.0,
+  "nearest_neighbour_um_median": 11.821946859126042,
+  "crowded_fraction": 0.0,
+  "axial_resolution_um": 5.4528651080930315,
+  "voxel_z_um": 4.0,
+  "noise": {
+    "measured_std": 6.703131198883057,
+    "predicted_std": 6.691773891448975,
+    "ratio": 1.001697204301627
+  }
+}

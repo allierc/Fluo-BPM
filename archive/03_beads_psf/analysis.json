@@ -1,0 +1,31 @@
+{
+  "name": "beads_psf",
+  "n_cells": 325,
+  "efficiency_median": 281.5829162597656,
+  "efficiency_depth_profile": [
+    0.9365508774580196,
+    1.0,
+    0.962724373516994,
+    0.9797668977821572,
+    0.9716820061095998,
+    0.9353372963858544,
+    0.826431427890324,
+    0.9625799155716676
+  ],
+  "efficiency_surface_vs_deep": 0.9729590887025836,
+  "brightness_correlation_peak": null,
+  "brightness_correlation_integrated": null,
+  "offset_lateral_um_median": 0.0,
+  "offset_lateral_um_p90": 0.0,
+  "offset_axial_um_median": 0.0,
+  "offset_axial_um_p90": 0.0,
+  "nearest_neighbour_um_median": 21.0,
+  "crowded_fraction": 0.0,
+  "axial_resolution_um": 5.4528651080930315,
+  "voxel_z_um": 4.0,
+  "noise": {
+    "measured_std": 3.438307285308838,
+    "predicted_std": 3.4273440837860107,
+    "ratio": 1.0031987455168834
+  }
+}

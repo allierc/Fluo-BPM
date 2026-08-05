@@ -1,0 +1,42 @@
+{
+  "name": "cells_dense_aberrated",
+  "description": "Hard variant: same 2000-cell volume, but embedded in a smooth random refractive index landscape (dn_rms 0.004, 25 um correlation) and imaged through an aberrated pupil (0.3 waves spherical, 0.15 astigmatism). The PSF then varies with x, y and z, which is the case a shift-invariant reconstruction cannot fit.\n",
+  "git_rev": "f6387c0",
+  "seed": 42,
+  "n_objects": 2000,
+  "fill_fraction": 0.15866269171237946,
+  "sampling": {
+    "nyquist_um^-1": 1.0,
+    "pupil_cutoff_um^-1": 0.9398496240601504,
+    "pupil_fits_in_kspace": true,
+    "defocus_phase_per_dz_rad": -1.1522722793663487,
+    "lateral_resolution_um": 0.532,
+    "axial_resolution_um": 5.4528651080930315,
+    "max_na_for_dx": 0.532
+  },
+  "photons": {
+    "peak_photons": 305.0,
+    "background_photons": 5.0,
+    "mean_bright_photons": 150.2705078125,
+    "shot_noise_e": 12.460758717369501,
+    "read_noise_e": 2.0,
+    "noise_applied": true,
+    "snr_bright": 11.90710193721479
+  },
+  "photon_scale": 0.24396311407955842,
+  "voxel_um": [
+    1.0,
+    1.0,
+    4.0
+  ],
+  "stack_shape_zyx": [
+    64,
+    256,
+    256
+  ],
+  "timing_s": {
+    "phantom": 11.022462606430054,
+    "simulation": 10.097349643707275,
+    "total": 26.043744802474976
+  }
+}
