@@ -51,20 +51,27 @@ def show(ax, img, extent=None, lo=1.0, hi=99.9, gamma=0.85):
     ax.imshow(img, cmap=GREEN, norm=norm, extent=extent, aspect='equal',
               interpolation='nearest', origin='lower')
     ax.set_xticks([]); ax.set_yticks([])
-    ax.set_facecolor('black')
+    ax.set_facecolor('black')       # inside the panel is the image itself
     for sp in ax.spines.values():
-        sp.set_color('#444444')
+        sp.set_color('#333333')     # a thin dark frame so the panel reads on white
 
 
 def panel_title(ax, text, size=10):
-    ax.set_title(text, color='white', fontsize=size, loc='left', pad=4)
+    ax.set_title(text, color='black', fontsize=size, loc='left', pad=4)
 
 
-def dark_axes(ax):
-    ax.set_facecolor('black')
-    ax.tick_params(colors='white', labelsize=9)
+def plot_axes(ax):
+    """A line-plot axis on white: black ticks and spines, no coloured furniture."""
+    ax.set_facecolor('white')
+    ax.tick_params(colors='black', labelsize=9)
     for sp in ax.spines.values():
-        sp.set_color('white')
+        sp.set_color('black')
+
+
+def legend(ax, **kw):
+    leg = ax.legend(facecolor='white', edgecolor='#999999', labelcolor='black',
+                    framealpha=0.9, **kw)
+    return leg
 
 
 def scalebar(ax, x0, y0, length_um, label, colour='white'):
@@ -229,13 +236,13 @@ def cell_extent(data, n_cells=80):
 def figure_ri(path):
     """Binned contrast against depth, near/far against dn, and the images themselves."""
     data = {tag: load(tag, root='log/RI_sweep') for tag, _, _ in RI_SWEEP}
-    fig = plt.figure(figsize=(13.0, 7.6), facecolor='black')
+    fig = plt.figure(figsize=(13.0, 7.6), facecolor='white')
     gs = fig.add_gridspec(2, 4, height_ratios=[1.05, 1.0], hspace=0.32, wspace=0.28)
 
-    ax0 = fig.add_subplot(gs[0, :2]); dark_axes(ax0)
-    ax1 = fig.add_subplot(gs[0, 2:]); dark_axes(ax1)
+    ax0 = fig.add_subplot(gs[0, :2]); plot_axes(ax0)
+    ax1 = fig.add_subplot(gs[0, 2:]); plot_axes(ax1)
 
-    colours = ['#bbbbbb', '#8ad48a', '#5ad4c0', '#5a8ce0', '#e05a5a']
+    colours = ['#777777', '#2e8b3d', '#0e8f8f', '#2b5fb0', '#c02f2f']
     near, far, dns = [], [], []
     for (tag, dn, label), colour in zip(RI_SWEEP, colours):
         d = data[tag]
@@ -246,22 +253,19 @@ def figure_ri(path):
         q = max(len(c) // 4, 1)
         near.append(np.nanmedian(c[-q:])); far.append(np.nanmedian(c[:q])); dns.append(dn)
 
-    ax0.axhline(0.0, color='white', ls=':', lw=1)
-    ax0.set_xlabel('focal depth [um]        objective side ->', color='white')
-    ax0.set_ylabel('cell / gap contrast', color='white')
+    ax0.axhline(0.0, color='#555555', ls=':', lw=1)
+    ax0.set_xlabel('focal depth [um]        objective side ->', color='black')
+    ax0.set_ylabel('cell / gap contrast', color='black')
     panel_title(ax0, '(a)  contrast against depth, median per bin', 11)
-    leg = ax0.legend(facecolor='black', edgecolor='#666666', labelcolor='white',
-                     fontsize=8.5, ncol=2)
-    leg.get_frame().set_alpha(0.7)
+    legend(ax0, fontsize=8.5, ncol=2)
 
-    ax1.plot(dns, near, 'o-', color='#8ad48a', lw=1.8, label='near the objective')
-    ax1.plot(dns, far, 'o-', color='#e05a5a', lw=1.8, label='far side')
-    ax1.axhline(0.0, color='white', ls=':', lw=1)
-    ax1.set_xlabel('cell index contrast  dn', color='white')
-    ax1.set_ylabel('cell / gap contrast', color='white')
+    ax1.plot(dns, near, 'o-', color='#2e8b3d', lw=1.8, label='near the objective')
+    ax1.plot(dns, far, 'o-', color='#c02f2f', lw=1.8, label='far side')
+    ax1.axhline(0.0, color='#555555', ls=':', lw=1)
+    ax1.set_xlabel('cell index contrast  dn', color='black')
+    ax1.set_ylabel('cell / gap contrast', color='black')
     panel_title(ax1, '(b)  near and far contrast against dn', 11)
-    leg = ax1.legend(facecolor='black', edgecolor='#666666', labelcolor='white', fontsize=8.5)
-    leg.get_frame().set_alpha(0.7)
+    legend(ax1, fontsize=8.5)
 
     # the images: control and strongest arm, far plane and near plane
     letters = iter('cdef')
@@ -280,7 +284,7 @@ def figure_ri(path):
             if col == 0 and side == 'far side':
                 scalebar(ax, 2, 2, 10.0, '10 um')
 
-    fig.savefig(path, dpi=140, facecolor='black', bbox_inches='tight')
+    fig.savefig(path, dpi=140, facecolor='white', bbox_inches='tight')
     plt.close(fig)
     return [(lab, dn, n, f) for (_, dn, lab), n, f in zip(RI_SWEEP, near, far)]
 
@@ -291,7 +295,7 @@ def figure_psf(path):
     cell = isolated_cell(arms[0][2])
     rows = []
 
-    fig = plt.figure(figsize=(13.0, 6.4), facecolor='black')
+    fig = plt.figure(figsize=(13.0, 6.4), facecolor='white')
     gs = fig.add_gridspec(2, len(arms), hspace=0.20, wspace=0.10)
     letters = 'abcdefghij'
     for col, (tag, na, d) in enumerate(arms):
@@ -304,23 +308,22 @@ def figure_psf(path):
             panel_title(ax, f'({letters[row * len(arms) + col]})  NA {na}, {plane}', 10)
             if col == 0:
                 scalebar(ax, ext[0] + 1.5, ext[2] + 1.5, 5.0, '5 um')
-    fig.savefig(path, dpi=140, facecolor='black', bbox_inches='tight')
+    fig.savefig(path, dpi=140, facecolor='white', bbox_inches='tight')
     plt.close(fig)
 
-    fig, ax = plt.subplots(figsize=(6.6, 4.3), facecolor='black')
-    dark_axes(ax)
+    fig, ax = plt.subplots(figsize=(6.6, 4.3), facecolor='white')
+    plot_axes(ax)
     na = [r[0] for r in rows]
-    ax.plot(na, [r[1] for r in rows], 'o-', color='#8ad48a', lw=1.8, label='lateral')
-    ax.plot(na, [r[2] for r in rows], 'o-', color='#e05a5a', lw=1.8, label='axial')
-    ax.axhline(2 * np.median(arms[0][2]['cells'][:, 4]), color='white', ls=':', lw=1)
-    ax.text(0.98, 0.06, 'dotted: true cell diameter', color='white', fontsize=8.5,
+    ax.plot(na, [r[1] for r in rows], 'o-', color='#2e8b3d', lw=1.8, label='lateral')
+    ax.plot(na, [r[2] for r in rows], 'o-', color='#c02f2f', lw=1.8, label='axial')
+    ax.axhline(2 * np.median(arms[0][2]['cells'][:, 4]), color='#555555', ls=':', lw=1)
+    ax.text(0.98, 0.06, 'dotted: true cell diameter', color='black', fontsize=8.5,
             ha='right', transform=ax.transAxes)
-    ax.set_xlabel('numerical aperture', color='white')
-    ax.set_ylabel('apparent cell extent, FWHM [um]', color='white')
+    ax.set_xlabel('numerical aperture', color='black')
+    ax.set_ylabel('apparent cell extent, FWHM [um]', color='black')
     panel_title(ax, '(a)  apparent cell size against NA', 11)
-    leg = ax.legend(facecolor='black', edgecolor='#666666', labelcolor='white', fontsize=9)
-    leg.get_frame().set_alpha(0.7)
-    fig.savefig(str(path).replace('.png', '_extent.png'), dpi=140, facecolor='black',
+    legend(ax, fontsize=9)
+    fig.savefig(str(path).replace('.png', '_extent.png'), dpi=140, facecolor='white',
                 bbox_inches='tight')
     plt.close(fig)
     return rows
@@ -333,19 +336,18 @@ def figure_mc(path):
     sp = np.array([r['speckle_pct'] for r in rows], dtype=float)
 
     exponent = float(np.polyfit(np.log(n), np.log(sp), 1)[0])
-    fig = plt.figure(figsize=(13.0, 3.6), facecolor='black')
+    fig = plt.figure(figsize=(13.0, 3.6), facecolor='white')
     gs = fig.add_gridspec(1, 5, width_ratios=[1.9, 0.10, 1, 1, 1], wspace=0.16)
-    ax = fig.add_subplot(gs[0, 0]); dark_axes(ax)
-    ax.loglog(n, sp, 'o-', color='#e05a5a', lw=1.8, label='measured, detector off')
-    ax.loglog(n, sp[0] * np.sqrt(n[0] / n), ':', color='white', lw=1.4,
+    ax = fig.add_subplot(gs[0, 0]); plot_axes(ax)
+    ax.loglog(n, sp, 'o-', color='#c02f2f', lw=1.8, label='measured, detector off')
+    ax.loglog(n, sp[0] * np.sqrt(n[0] / n), ':', color='#555555', lw=1.4,
               label=r'$1/\sqrt{W}$ for reference')
-    ax.loglog(n, sp[0] * (n / n[0]) ** exponent, '--', color='#8ad48a', lw=1.3,
+    ax.loglog(n, sp[0] * (n / n[0]) ** exponent, '--', color='#2e8b3d', lw=1.3,
               label=f'fit, $W^{{{exponent:.2f}}}$')
-    ax.set_xlabel('random phase draws  $W$', color='white')
-    ax.set_ylabel('residual speckle [% of local mean]', color='white')
+    ax.set_xlabel('random phase draws  $W$', color='black')
+    ax.set_ylabel('residual speckle [% of local mean]', color='black')
     panel_title(ax, '(a)  speckle of the Monte-Carlo average', 11)
-    leg = ax.legend(facecolor='black', edgecolor='#666666', labelcolor='white', fontsize=8.5)
-    leg.get_frame().set_alpha(0.7)
+    legend(ax, fontsize=8.5)
 
     shown = [rows[0]['n'], rows[len(rows) // 2]['n'], rows[-1]['n']]
     letters = iter('bcd')
@@ -362,7 +364,7 @@ def figure_mc(path):
         a.set_anchor('C')
         if i == 0:
             scalebar(a, 1.5, 1.5, 5.0, '5 um')
-    fig.savefig(path, dpi=140, facecolor='black', bbox_inches='tight')
+    fig.savefig(path, dpi=140, facecolor='white', bbox_inches='tight')
     plt.close(fig)
     for r in rows:
         r['exponent'] = exponent
@@ -542,7 +544,9 @@ $1/\sqrt{W}$ for reference. (b--d) The same plane at three values of $W$.}
 noise. (a) Cell/gap contrast against focal depth, median per depth bin. (b) The same
 near the objective and on the far side, against $dn$; dotted line is zero contrast.
 (c--f) The stacks themselves: the index-matched control looks the same at both ends,
-while at $dn = 0.02$ the far side has lost its cells.}
+while at $dn = 0.02$ the far side has lost its cells. These arms run at $W = 240$, so
+the visible grain is the Monte-Carlo residue of Figure~1 (2.8\,\%), not the detector,
+which is off.}
 \end{figure}
 
 \begin{figure}[t]
