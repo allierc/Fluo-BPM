@@ -61,17 +61,18 @@ def panel_title(ax, text, size=10):
 
 
 def plot_axes(ax):
-    """A line-plot axis on white: black ticks and spines, no coloured furniture."""
+    """A line-plot axis on white: an x axis and a y axis, and nothing else."""
     ax.set_facecolor('white')
     ax.tick_params(colors='black', labelsize=9)
-    for sp in ax.spines.values():
-        sp.set_color('black')
+    for side in ('top', 'right'):
+        ax.spines[side].set_visible(False)
+    for side in ('left', 'bottom'):
+        ax.spines[side].set_color('black')
 
 
 def legend(ax, **kw):
-    leg = ax.legend(facecolor='white', edgecolor='#999999', labelcolor='black',
-                    framealpha=0.9, **kw)
-    return leg
+    """Frameless, to match axes that have no box either."""
+    return ax.legend(frameon=False, labelcolor='black', **kw)
 
 
 def scalebar(ax, x0, y0, length_um, label, colour='white'):
@@ -256,7 +257,7 @@ def figure_ri(path):
     ax0.axhline(0.0, color='#555555', ls=':', lw=1)
     ax0.set_xlabel('focal depth [um]        objective side ->', color='black')
     ax0.set_ylabel('cell / gap contrast', color='black')
-    panel_title(ax0, '(a)  contrast against depth, median per bin', 11)
+    panel_title(ax0, 'a)  contrast against depth, median per bin', 11)
     legend(ax0, fontsize=8.5, ncol=2)
 
     ax1.plot(dns, near, 'o-', color='#2e8b3d', lw=1.8, label='near the objective')
@@ -264,7 +265,7 @@ def figure_ri(path):
     ax1.axhline(0.0, color='#555555', ls=':', lw=1)
     ax1.set_xlabel('cell index contrast  dn', color='black')
     ax1.set_ylabel('cell / gap contrast', color='black')
-    panel_title(ax1, '(b)  near and far contrast against dn', 11)
+    panel_title(ax1, 'b)  near and far contrast against dn', 11)
     legend(ax1, fontsize=8.5)
 
     # the images: control and strongest arm, far plane and near plane
@@ -280,7 +281,7 @@ def figure_ri(path):
             vx = d['summary']['voxel_um'][0]
             ext = [0, img.shape[1] * vx, 0, img.shape[0] * vx]
             show(ax, img, extent=ext, lo=1, hi=99.9, gamma=0.85)
-            panel_title(ax, f'({next(letters)})  {label}, {side}', 10)
+            panel_title(ax, f'{next(letters)})  {label}, {side}', 10)
             if col == 0 and side == 'far side':
                 scalebar(ax, 2, 2, 10.0, '10 um')
 
@@ -305,7 +306,7 @@ def figure_psf(path):
         for row, (img, ext, plane) in enumerate([(xy, ext_xy, 'xy'), (xz, ext_xz, 'xz')]):
             ax = fig.add_subplot(gs[row, col])
             show(ax, img, extent=ext, lo=1, hi=99.9, gamma=0.85)
-            panel_title(ax, f'({letters[row * len(arms) + col]})  NA {na}, {plane}', 10)
+            panel_title(ax, f'{letters[row * len(arms) + col]})  NA {na}, {plane}', 10)
             if col == 0:
                 scalebar(ax, ext[0] + 1.5, ext[2] + 1.5, 5.0, '5 um')
     fig.savefig(path, dpi=140, facecolor='white', bbox_inches='tight')
@@ -321,7 +322,7 @@ def figure_psf(path):
             ha='right', transform=ax.transAxes)
     ax.set_xlabel('numerical aperture', color='black')
     ax.set_ylabel('apparent cell extent, FWHM [um]', color='black')
-    panel_title(ax, '(a)  apparent cell size against NA', 11)
+    panel_title(ax, 'a)  apparent cell size against NA', 11)
     legend(ax, fontsize=9)
     fig.savefig(str(path).replace('.png', '_extent.png'), dpi=140, facecolor='white',
                 bbox_inches='tight')
@@ -346,7 +347,7 @@ def figure_mc(path):
               label=f'fit, $W^{{{exponent:.2f}}}$')
     ax.set_xlabel('random phase draws  $W$', color='black')
     ax.set_ylabel('residual speckle [% of local mean]', color='black')
-    panel_title(ax, '(a)  speckle of the Monte-Carlo average', 11)
+    panel_title(ax, 'a)  speckle of the Monte-Carlo average', 11)
     legend(ax, fontsize=8.5)
 
     shown = [rows[0]['n'], rows[len(rows) // 2]['n'], rows[-1]['n']]
@@ -360,7 +361,7 @@ def figure_mc(path):
         a = fig.add_subplot(gs[0, 2 + i])
         ext = [0, img.shape[1] * vx, 0, img.shape[0] * vx]
         show(a, img, extent=ext, lo=1, hi=99.9, gamma=0.85)
-        panel_title(a, f'({next(letters)})  W = {nn}', 10)
+        panel_title(a, f'{next(letters)})  W = {nn}', 10)
         a.set_anchor('C')
         if i == 0:
             scalebar(a, 1.5, 1.5, 5.0, '5 um')
@@ -533,17 +534,17 @@ parameter change.
 
 \begin{figure}[t]
 \centering\includegraphics[width=\textwidth]{mc.png}
-\caption*{\textbf{Figure 1.} (a) Residual speckle of the Monte-Carlo average against
+\caption*{\textbf{Figure 1.} a) Residual speckle of the Monte-Carlo average against
 the number of random phase draws, detector off, with the fitted power law and
-$1/\sqrt{W}$ for reference. (b--d) The same plane at three values of $W$.}
+$1/\sqrt{W}$ for reference. b--d) The same plane at three values of $W$.}
 \end{figure}
 
 \begin{figure}[t]
 \centering\includegraphics[width=\textwidth]{ri.png}
 \caption*{\textbf{Figure 2.} Index sweep, 384\,\textmu m deep, no measurement
-noise. (a) Cell/gap contrast against focal depth, median per depth bin. (b) The same
+noise. a) Cell/gap contrast against focal depth, median per depth bin. b) The same
 near the objective and on the far side, against $dn$; dotted line is zero contrast.
-(c--f) The stacks themselves: the index-matched control looks the same at both ends,
+c--f) The stacks themselves: the index-matched control looks the same at both ends,
 while at $dn = 0.02$ the far side has lost its cells. These arms run at $W = 240$, so
 the visible grain is the Monte-Carlo residue of Figure~1 (2.8\,\%), not the detector,
 which is off.}
