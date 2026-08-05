@@ -1,0 +1,17 @@
+name: RI_sweep
+description: >
+  Cell refractive index sweep at 384 um depth, no measurement noise, 240 random phase
+  draws. Every arm holds the same cells at the same places (same seed), so any
+  difference between arms is refraction alone. dn = 0 is the control and must come out
+  flat: the objective sits past the exit face, so light from the far plane crosses the
+  whole sample and must arrive degraded while the near plane does not.
+base: config/base/reference_optics.yaml
+overrides:
+  volume.nz: 768              # 384 um deep at the 0.5 um propagation step
+  phantom.n_cells: 2000
+  phantom.dn_noise_rms: 0.0   # mean contrast only in this sweep
+  emission.n_iterations: 240
+sweep:
+  parameter: phantom.dn_cell
+  values: [0.0, 0.0025, 0.005, 0.010, 0.020]
+  labels: [dn0000, dn0025, dn0050, dn0100, dn0200]

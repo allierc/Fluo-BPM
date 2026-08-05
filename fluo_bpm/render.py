@@ -1,7 +1,6 @@
 """Animations and figures for a run's log folder.
 
-Black background, no titles, labels top-left, matching the convention used for the
-other figures in this project.
+Black background, panel label in parentheses above the panel, left aligned.
 """
 import numpy as np
 from PIL import Image
@@ -56,24 +55,25 @@ def save_gif(vol, path, gamma=0.6, duration=80, per_plane=False, max_frames=120,
     return len(frames)
 
 
-def save_projection_figure(clean, noisy, gt, path, dx, dz, label_prefix=''):
-    """xy and xz maximum projections of ground truth / clean image / noisy image."""
+def save_projection_figure(stack, gt, path, dx, dz, stack_label='stack'):
+    """xy and xz maximum projections of the ground truth beside one stack.
+
+    Written once per stack -- with and without noise -- rather than as one combined
+    figure, so each can be looked at on its own.
+    """
     def mip(v, axis):
         return np.max(np.asarray(v, dtype=np.float32), axis=axis)
 
     panels = [
-        ('a  ground truth  xy', mip(gt, 0)), ('b  image  xy', mip(clean, 0)),
-        ('c  image + noise  xy', mip(noisy, 0)),
-        ('d  ground truth  xz', mip(gt, 1)), ('e  image  xz', mip(clean, 1)),
-        ('f  image + noise  xz', mip(noisy, 1)),
+        ('(a)  ground truth  xy', mip(gt, 0)), (f'(b)  {stack_label}  xy', mip(stack, 0)),
+        ('(c)  ground truth  xz', mip(gt, 1)), (f'(d)  {stack_label}  xz', mip(stack, 1)),
     ]
-    fig, axes = plt.subplots(2, 3, figsize=(13, 8.4), facecolor='black')
+    fig, axes = plt.subplots(2, 2, figsize=(9.2, 8.4), facecolor='black')
     for ax, (label, img) in zip(axes.ravel(), panels):
         aspect = (dz / dx) if 'xz' in label else 1.0
         ax.imshow(img ** 0.5, cmap='Greens_r', aspect=aspect,
                   vmax=np.percentile(img ** 0.5, 99.8))
-        ax.text(0.02, 0.97, f'{label_prefix}{label}', color='white', fontsize=11,
-                va='top', ha='left', transform=ax.transAxes)
+        ax.set_title(label, color='white', fontsize=11, loc='left', pad=6)
         ax.set_xticks([]); ax.set_yticks([])
         ax.set_facecolor('black')
     fig.tight_layout()
@@ -97,20 +97,17 @@ def save_psf_figure(psf_table, path):
     axes[0].scatter(z, psf_table['fwhm_xy_um'], c='#e05a5a', s=14)
     axes[0].set_xlabel('depth z [um]', color='white')
     axes[0].set_ylabel('lateral FWHM [um]', color='white')
-    axes[0].text(0.02, 0.97, 'a  lateral width vs depth', color='white', fontsize=11,
-                 va='top', transform=axes[0].transAxes)
+    axes[0].set_title('(a)  lateral width vs depth', color='white', fontsize=11, loc='left')
 
     axes[1].scatter(z, psf_table['fwhm_z_um'], c='#5a8ce0', s=14)
     axes[1].set_xlabel('depth z [um]', color='white')
     axes[1].set_ylabel('axial FWHM [um]', color='white')
-    axes[1].text(0.02, 0.97, 'b  axial width vs depth', color='white', fontsize=11,
-                 va='top', transform=axes[1].transAxes)
+    axes[1].set_title('(b)  axial width vs depth', color='white', fontsize=11, loc='left')
 
     sc = axes[2].scatter(r, psf_table['fwhm_xy_um'], c=z, cmap='viridis', s=14)
     axes[2].set_xlabel('field radius [um]', color='white')
     axes[2].set_ylabel('lateral FWHM [um]', color='white')
-    axes[2].text(0.02, 0.97, 'c  lateral width vs field position', color='white',
-                 fontsize=11, va='top', transform=axes[2].transAxes)
+    axes[2].set_title('(c)  lateral width vs field position', color='white', fontsize=11, loc='left')
     cb = fig.colorbar(sc, ax=axes[2])
     cb.set_label('z [um]', color='white')
     cb.ax.tick_params(colors='white')

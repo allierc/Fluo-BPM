@@ -6,14 +6,15 @@ Log folder contents (log/<config name>/):
 
     config.yaml           the resolved configuration, as run
     gt_cells.csv          per-cell ground truth: position, radius, brightness
+    fluo.tif                the delivered stack, uint16 ADU, under this folder's camera
+                            settings. Whether measurement noise is on is a property of
+                            the configuration, i.e. of the folder -- so there is one
+                            stack here, not a with/without pair.
     fluo_gt.tif             true fluorophore concentration, on the delivered voxel grid
     fluo_labels.tif         per-cell label map, binned (nearest-cell attribution)
-    fluo_without_noise.tif  simulated stack, no detector noise, float32 photons
-    fluo_with_noise.tif     simulated stack with shot + read noise, uint16 ADU
     fluo_fine.tif           the un-binned simulation grid (only if save_fine_volume)
-    fluo_with_noise.gif     green z-sweep of the noisy stack
-    fluo_without_noise.gif  green z-sweep of the noise-free stack
-    fluo_projections.png    xy/xz projections of truth, stack, noisy stack
+    fluo.gif                green z-sweep of the delivered stack
+    fluo_projections.png    xy/xz projections against the ground truth
     fluo_psf_grid.png       PSF width vs (x, y, z)              [phantom.type=beads]
     psf_table.csv           per-bead PSF fits                   [phantom.type=beads]
     summary.md              parameters, timings, photon statistics, findings
@@ -141,6 +142,19 @@ def run(config: FluoBPMConfig, out_dir: str = None) -> dict:
     print(f"photons: peak {stats['peak_photons']:.0f}, bright-voxel mean "
           f"{stats['mean_bright_photons']:.0f}, {snr_txt}")
 
+    # Residual speckle of the incoherent sum. Even with the detector switched off the
+    # stack fluctuates, because the sum over random-phase realizations has not
+    # converged: it falls as 1/sqrt(n_iterations). Reported so that grain in a
+    # noise-free folder is not mistaken for measurement noise.
+    from scipy.ndimage import gaussian_filter
+    _mid = photons[:, :, photons.shape[2] // 2].cpu().numpy().astype(np.float64)
+    _tex = _mid - gaussian_filter(_mid, 2.0)
+    _bright = _mid > np.percentile(_mid, 85)
+    speckle_pct = float(100 * _tex[_bright].std() / _mid[_bright].mean()) \
+        if _bright.any() else float('nan')
+    print(f"monte carlo speckle: {speckle_pct:.1f}% of the local mean "
+          f"({config.emission.n_iterations} realizations, falls as 1/sqrt(N))")
+
     # ground truth on the same delivered grid
     gt_binned = cam.bin_volume(torch.tensor(np.moveaxis(fluo, 0, -1), device=device),
                                cm.bin_xy, cm.bin_z) / (cm.bin_xy ** 2 * cm.bin_z)
@@ -148,14 +162,13 @@ def run(config: FluoBPMConfig, out_dir: str = None) -> dict:
     def to_zyx(t):
         return np.moveaxis(t.cpu().numpy(), -1, 0)
 
-    clean_zyx = to_zyx(photons)
-    noisy_zyx = np.moveaxis(cam.digitize(noisy_adu, cm), -1, 0)
+    clean_zyx = to_zyx(photons)                       # photo-electrons, for the metrics
+    stack_zyx = np.moveaxis(cam.digitize(noisy_adu, cm), -1, 0)   # delivered ADU
     gt_zyx = to_zyx(gt_binned)
 
     # ---- write ------------------------------------------------------------
     (out / 'config.yaml').write_text(config.pretty())
-    imwrite(out / 'fluo_without_noise.tif', clean_zyx.astype(np.float32))
-    imwrite(out / 'fluo_with_noise.tif', noisy_zyx)
+    imwrite(out / 'fluo.tif', stack_zyx)
     if config.engine.save_gt_volume:
         imwrite(out / 'fluo_gt.tif', gt_zyx.astype(np.float32))
     if config.engine.save_label_volume:
@@ -185,19 +198,13 @@ def run(config: FluoBPMConfig, out_dir: str = None) -> dict:
     # ---- figures ----------------------------------------------------------
     if config.engine.save_gif:
         n_frames = render.save_gif(
-            noisy_zyx.astype(np.float32), out / 'fluo_with_noise.gif',
+            stack_zyx.astype(np.float32), out / 'fluo.gif',
             gamma=config.engine.gif_gamma, duration=config.engine.gif_duration_ms,
             max_frames=config.engine.gif_max_frames,
-            labels=[f'z = {i*voxel[2]:.0f} um' for i in range(noisy_zyx.shape[0])],
+            labels=[f'z = {i*voxel[2]:.0f} um' for i in range(stack_zyx.shape[0])],
         )
-        render.save_gif(
-            clean_zyx, out / 'fluo_without_noise.gif',
-            gamma=config.engine.gif_gamma, duration=config.engine.gif_duration_ms,
-            max_frames=config.engine.gif_max_frames,
-            labels=[f'z = {i*voxel[2]:.0f} um' for i in range(clean_zyx.shape[0])],
-        )
-        render.save_projection_figure(clean_zyx, noisy_zyx, gt_zyx,
-                                      out / 'fluo_projections.png', voxel[0], voxel[2])
+        render.save_projection_figure(stack_zyx, gt_zyx, out / 'fluo_projections.png',
+                                      voxel[0], voxel[2], stack_label=name)
         print(f"gif: {n_frames} frames")
 
     t_total = time.time() - t_start
@@ -212,7 +219,8 @@ def run(config: FluoBPMConfig, out_dir: str = None) -> dict:
         'photons': stats,
         'photon_scale': scale,
         'voxel_um': voxel,
-        'stack_shape_zyx': list(noisy_zyx.shape),
+        'stack_shape_zyx': list(stack_zyx.shape),
+        'monte_carlo_speckle_pct': speckle_pct,
         'timing_s': {'phantom': t_phantom, 'simulation': t_sim, 'total': t_total},
     }
     if psf is not None:

@@ -1,0 +1,18 @@
+name: mc_sweep
+description: >
+  Monte-Carlo convergence. Incoherent emission is simulated as an average over W
+  random phase draws, so a finite W leaves residue that looks exactly like detector
+  noise. With the detector off, this sweep measures that residue against W; it falls
+  as 1/sqrt(W). A small volume, since only the law is wanted.
+base: config/base/reference_optics.yaml
+overrides:
+  volume.nz: 256              # 64 um deep at the 0.5 um step
+  phantom.n_cells: 400
+  phantom.dn_cell: 0.0
+  phantom.dn_noise_rms: 0.0
+  engine.save_gif: false
+  engine.save_label_volume: false
+sweep:
+  parameter: emission.n_iterations
+  values: [30, 60, 120, 240, 480, 960, 1920]
+  labels: [n0030, n0060, n0120, n0240, n0480, n0960, n1920]

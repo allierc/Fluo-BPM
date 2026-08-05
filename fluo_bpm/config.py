@@ -72,6 +72,12 @@ class PhantomConfig(BaseModel):
     min_gap_um: float = 0.5            # surface-to-surface spacing
     edge_um: float = 0.4               # membrane softness of the tanh edge
     dn_cell: float = 0.02              # index contrast of a cell vs medium
+    dn_noise_rms: float = 0.0          # index texture INSIDE the cells (organelles).
+                                       # A homogeneous sphere only refracts, weakly and
+                                       # at low order; real scattering comes from
+                                       # sub-cellular structure, so the random part
+                                       # belongs on the cell map, not in the medium.
+    dn_noise_um: float = 1.0           # correlation length of that texture
     brightness: BrightnessConfig = BrightnessConfig()
     hollow: bool = False               # fluorescence in a shell only (cytoplasm/membrane)
     shell_um: float = 1.5              # shell thickness when hollow

@@ -12,6 +12,14 @@ rather than asserted. For each log folder this reports:
         nearest local maximum, i.e. how far a perfect detector could be off.
   crowding                       fraction of cells whose nearest neighbour is
         closer than the axial resolution, which is where fitting degenerates.
+  sharpness vs depth             normalized gradient energy per plane, and the ratio
+        of the quarter nearest the objective to the quarter furthest from it. The
+        objective sits past the exit face, so light from a far plane crosses the whole
+        sample before it is collected and a refracting sample MUST give a ratio above
+        one. With dn = 0 it must come back to one; that is the control. Note this is
+        the observable that reveals refraction -- integrated brightness barely moves,
+        because a dn = 0.02 sphere deflects light by ~2 deg, well inside an NA 0.5
+        collection cone, so the light is aberrated rather than lost.
   measured noise                 std of (noisy - clean) against the shot-noise
         prediction, as a check that the camera model is doing what it claims.
 
@@ -32,9 +40,13 @@ from skimage import io
 def load_run(folder: Path):
     folder = Path(folder)
     summary = json.loads((folder / 'summary.json').read_text())
-    clean = io.imread(folder / 'fluo_without_noise.tif').astype(np.float32)
-    noisy_path = folder / 'fluo_with_noise.tif'
-    noisy = io.imread(noisy_path).astype(np.float32) if noisy_path.exists() else None
+    import yaml
+    summary['_config'] = yaml.safe_load((folder / 'config.yaml').read_text())
+    # one stack per folder, in ADU; convert back to photo-electrons for the metrics
+    cam = summary['_config']['camera']
+    stack = io.imread(folder / 'fluo.tif').astype(np.float32)
+    clean = (stack - cam.get('offset', 0.0)) / (cam.get('gain', 1.0) or 1.0)
+    noisy = None
     gt = np.loadtxt(folder / 'gt_cells.csv', delimiter=',', skiprows=1)
     if gt.ndim == 1:
         gt = gt[None, :]
@@ -133,6 +145,23 @@ def analyze(folder: Path):
     else:
         crowded, nn_median = 0.0, float('nan')
 
+    # --- sharpness vs depth ------------------------------------------------
+    sharp = []
+    for plane in clean.astype(np.float64):
+        gy, gx = np.gradient(plane)
+        m = plane.mean()
+        sharp.append(float((gx ** 2 + gy ** 2).mean() / m ** 2) if m > 0 else np.nan)
+    sharp = np.array(sharp)
+    q = max(len(sharp) // 4, 1)
+    near = float(np.nanmedian(sharp[-q:]))     # high index = nearest the objective
+    far = float(np.nanmedian(sharp[:q]))
+    # Only meaningful for a phantom that fills the volume uniformly. A bead grid puts
+    # emitters on 13 discrete depths and a spheroid occupies the middle only, so for
+    # those the ratio measures where the objects are, not how blurred they are.
+    phantom_type = summary.get('_config', {}).get('phantom', {}).get('type', 'cells')
+    uniform = str(phantom_type).endswith('cells')
+    sharpness_ratio = (near / far if far > 0 else float('nan')) if uniform else None
+
     # --- noise check -------------------------------------------------------
     noise_check = {}
     if noisy is not None and summary['photons'].get('noise_applied', True):
@@ -162,6 +191,11 @@ def analyze(folder: Path):
         'crowded_fraction': crowded,
         'axial_resolution_um': axial_res,
         'voxel_z_um': vz,
+        'sharpness_near_over_far': sharpness_ratio,
+        'sharpness_profile_near_to_far': ([float(v) for v in
+                                           (sharp.reshape(8, -1).mean(axis=1)[::-1]
+                                            / np.nanmax(sharp))]
+                                          if uniform and len(sharp) >= 8 else []),
         'noise': noise_check,
     }
 
@@ -193,6 +227,13 @@ def _markdown(path, r):
         f"{r['voxel_z_um']:.0f} um voxel and grows with cell radius, since the search "
         f"window spans the cell (+-r) and any plane inside a big cell can be the "
         f"brightest",
+        ("- sharpness near the objective / far from it: not measured (the ratio "
+         "assumes a depth-uniform phantom)" if r['sharpness_near_over_far'] is None else
+         f"- sharpness near the objective / far from it: "
+         f"{r['sharpness_near_over_far']:.2f}"
+         + ("  (a refracting sample degrades with depth, as it must)"
+            if r['sharpness_near_over_far'] > 1.15 else
+            "  (flat: nothing between the emitters and the pupil to aberrate)")),
         f"- nearest-neighbour distance median "
         f"{r['nearest_neighbour_um_median']:.1f} um; "
         f"{r['crowded_fraction']*100:.1f}% of cells closer than the axial resolution "
@@ -218,21 +259,24 @@ if __name__ == '__main__':
         r = analyze(folder)
         results.append(r)
         rt = r['brightness_correlation_integrated']
+        sn = r['sharpness_near_over_far']
+        sharp_txt = ' n/a' if sn is None else f'{sn:.2f}'
         print(f"{r['name']:26s} eff(surface/deep) {r['efficiency_surface_vs_deep']:.2f}  "
               f"r(emission) {'  n/a' if rt is None else f'{rt:.3f}'}  "
+              f"sharp near/far {sharp_txt}  "
               f"lateral offset {r['offset_lateral_um_median']:.2f} um  "
               f"nn {r['nearest_neighbour_um_median']:.1f} um  "
               f"crowded {r['crowded_fraction']*100:.1f}%")
 
     if len(results) > 1:
-        print('\n| run | cells | eff surface/deep | r(emission) | lateral offset [um] '
-              '| nn [um] | crowded |')
+        print('\n| run | cells | sharp near/far | eff surface/deep | r(emission) '
+              '| lateral offset [um] | nn [um] |')
         print('|---|---|---|---|---|---|---|')
         for r in results:
             rt = r['brightness_correlation_integrated']
             print(f"| {r['name']} | {r['n_cells']} | "
+                  f"{'n/a' if r['sharpness_near_over_far'] is None else format(r['sharpness_near_over_far'], '.2f')} | "
                   f"{r['efficiency_surface_vs_deep']:.2f} | "
                   f"{'n/a' if rt is None else f'{rt:.3f}'} | "
                   f"{r['offset_lateral_um_median']:.2f} | "
-                  f"{r['nearest_neighbour_um_median']:.1f} | "
-                  f"{r['crowded_fraction']*100:.1f}% |")
+                  f"{r['nearest_neighbour_um_median']:.1f} |")

@@ -18,12 +18,14 @@ CODE = ['fluorescence_bpm.py', 'simulate.py', 'analyze_run.py', 'run_all.sh',
         'test_determinism.py', 'test_registration.py']
 CODE_DIRS = ['fluo_bpm']
 COPY = ['config.yaml', 'summary.md', 'summary.json', 'analysis.md', 'analysis.json',
-        'gt_cells.csv', 'psf_table.csv', 'fluo_with_noise.gif', 'fluo_without_noise.gif',
-        'fluo_projections.png', 'fluo_psf_grid.png']
+        'gt_cells.csv', 'psf_table.csv', 'fluo_with_meas_noise.gif', 'fluo_without_meas_noise.gif',
+        'fluo_projections_with_meas_noise.png', 'fluo_projections_without_meas_noise.png',
+        'fluo_psf_grid.png']
 
 # archive number -> log folder, in the order the experiments were done
 ORDER = ['beads_psf', 'beads_psf_aberrated', 'cells_dense',
-         'cells_dense_aberrated', 'cells_spheroid', 'cells_real_like']
+         'cells_dense_aberrated', 'cells_spheroid', 'cells_real_like',
+         'cells_real_like_tall']
 
 
 def git_rev():
@@ -99,12 +101,12 @@ def readme(s, a, log_dir):
                          f"shot+read prediction {n['predicted_std']:.1f} "
                          f"(ratio {n['ratio']:.2f})")
     lines += ['', '## Files', '',
-              '- `fluo_with_noise.gif`, `fluo_without_noise.gif` — green z-sweeps',
-              '- `fluo_projections.png` — xy and xz projections of truth, stack, noisy stack',
+              '- `fluo.gif` — green z-sweep of the delivered stack',
+              '- `fluo_projections.png` — xy and xz projections against the ground truth',
               '- `analysis.md` — detection efficiency, emission recovery, offsets',
               '- `gt_cells.csv` — per-cell ground truth (position, radius, brightness)',
               '- `config.yaml` — the configuration as run; `code/` — the code that ran it',
-              '', f"Volumes (`fluo_with_noise.tif`, `fluo_without_noise.tif`, "
+              '', f"Volumes (`fluo.tif`, "
               f"`fluo_gt.tif`, `fluo_labels.tif`) stay in `{log_dir}/`.", '',
               'Reproduce with:', '', '```bash',
               f"python simulate.py -c config/{s['name']}.yaml", '```', '']

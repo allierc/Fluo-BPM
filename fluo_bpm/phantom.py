@@ -248,6 +248,22 @@ def medium_index(config: FluoBPMConfig) -> np.ndarray:
     raise ValueError(f'unknown medium type {med.type}')
 
 
+def band_limited_field(shape, dx, dz, correlation_um, seed) -> np.ndarray:
+    """Zero-mean, unit-rms Gaussian field with a prescribed correlation length."""
+    nz, ny, nx = shape
+    rng = np.random.default_rng(seed)
+    noise = rng.standard_normal(shape).astype(np.float32)
+    kz = np.fft.fftfreq(nz, d=dz).reshape(-1, 1, 1)
+    ky = np.fft.fftfreq(ny, d=dx).reshape(1, -1, 1)
+    kx = np.fft.fftfreq(nx, d=dx).reshape(1, 1, -1)
+    envelope = np.exp(-((np.pi * kx * correlation_um) ** 2
+                        + (np.pi * ky * correlation_um) ** 2
+                        + (np.pi * kz * correlation_um) ** 2))
+    field = np.fft.ifftn(np.fft.fftn(noise) * envelope).real.astype(np.float32)
+    field -= field.mean()
+    return field / (float(field.std()) or 1.0)
+
+
 def build(config: FluoBPMConfig) -> Tuple[np.ndarray, np.ndarray, np.ndarray, List[Cell]]:
     """(fluorescence, dn, labels, cells) for the configured phantom."""
     if config.phantom.type == PhantomType.BEADS:
@@ -256,5 +272,13 @@ def build(config: FluoBPMConfig) -> Tuple[np.ndarray, np.ndarray, np.ndarray, Li
         cells = place_cells(config)
 
     fluo, dn, labels = rasterize(config, cells)
+
+    # index texture inside the cells: the cell map carries it, the medium does not
+    ph, vol = config.phantom, config.volume
+    if ph.dn_noise_rms > 0:
+        field = band_limited_field((vol.nz, vol.ny, vol.nx), vol.dx, vol.dz,
+                                   ph.dn_noise_um, (config.seed or 0) + 4243)
+        dn = dn + (ph.dn_noise_rms * field * (labels > 0)).astype(np.float32)
+
     dn = dn + medium_index(config)
     return fluo, dn, labels, cells

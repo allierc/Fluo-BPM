@@ -1,0 +1,62 @@
+description: >
+  TALL variant of cells_real_like, made to isolate the effect of the refractive
+  index: same cells, same density, same photon budget, but 256 um of depth instead
+  of 64. Compare against the dn_cell = 0 control reported in the archive README.
+  Matched by eye to a real widefield plane the user supplied: cells spanning about
+  an eighth of the frame, nearly touching, a wide brightness spread with a few
+  near-saturated cells, heavy out-of-focus haze, and visible grain on that haze.
+  Scaled from the reference by pixel count rather than by microns: cells are
+  ~30 px in diameter with ~10 across the frame, which on the 1 um delivered grid of
+  the other configurations means a 320 px field and 24-32 um cells.
+seed: 11
+
+volume:
+  nx: 640          # 320 um field of view -> delivered 320 px, ~10 cells across it
+  ny: 640
+  nz: 256          # 4x the height of cells_real_like: 256 um, so light from the
+                   # far side crosses four times as much refracting tissue
+  dx: 0.5
+  dz: 1.0
+
+phantom:
+  type: cells
+  n_cells: 520     # 4x the count, so the fill fraction matches cells_real_like
+  radius_um: [12.0, 16.0]   # 12-16 px radius, 24-32 px diameter on the 1 um grid
+  min_gap_um: 0.2           # nearly touching
+  edge_um: 0.3            # sharper membrane: the reference cells have crisp edges
+  dn_cell: 0.02
+  margin_um: 1.0
+  brightness:
+    dist: lognormal
+    sigma: 0.6              # most cells of similar brightness, a handful much brighter
+    clip: [0.3, 8.0]
+
+medium:
+  type: none
+
+optics:
+  nm: 1.33
+  na: 0.5
+  lbda: 0.532
+
+emission:
+  n_iterations: 200
+  stochastic: false
+
+camera:
+  bin_xy: 2        # 0.5 -> 1.0 um delivered pixel
+  bin_z: 4         # 1.0 -> 4.0 um delivered plane
+  photons_peak: 300.0       # bright cells over a dim background, as in the reference
+  background_photons: 6.0
+  poisson: true
+  read_noise_e: 3.0
+  offset: 100.0
+  bit_depth: 16
+
+engine:
+  device: cuda:1
+  log_dir: ./log
+  save_gt_volume: true
+  save_label_volume: true
+  save_gif: true
+  gif_gamma: 0.5

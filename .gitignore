@@ -55,3 +55,9 @@ log/
 # OS
 .DS_Store
 Thumbs.db
+
+# LaTeX build artefacts of archive/note (the pdf itself is tracked)
+*.aux
+*.log
+*.out
+!archive/note/note.pdf

@@ -1,0 +1,98 @@
+description: 'Reference optics of confocal_emf3.czi (see ACQUISITION.md): NA 1.0 water
+  immersion,
+
+  n 1.33, 517 nm emission, 259 nm delivered pixels, 1 um delivered z step, and a dense
+
+  volume of ~8 um cells. Base for the sweep specs in config/sweeps/ -- each of those
+
+  overrides what it needs and sweeps one parameter.
+
+  '
+seed: 11
+config_file: none
+volume:
+  nx: 512
+  ny: 512
+  nz: 768
+  dx: 0.1295
+  dz: 0.5
+phantom:
+  type: cells
+  n_cells: 2000
+  radius_um:
+  - 3.5
+  - 4.5
+  min_gap_um: 0.1
+  edge_um: 0.2
+  dn_cell: 0.0
+  dn_noise_rms: 0.0
+  dn_noise_um: 1.0
+  brightness:
+    dist: lognormal
+    sigma: 0.6
+    low: 0.3
+    high: 3.0
+    clip:
+    - 0.3
+    - 8.0
+  hollow: false
+  shell_um: 1.5
+  margin_um: 0.5
+  spheroid_radius_um: 60.0
+  spheroid_center_um: null
+  bead_grid:
+  - 5
+  - 5
+  - 9
+  bead_radius_um: 0.15
+  bead_brightness: 1.0
+medium:
+  type: none
+  dn_rms: 0.004
+  correlation_um: 25.0
+  correlation_z_um: 40.0
+  slab_dn: 0.02
+  slab_thickness_um: 20.0
+  slab_tilt: 0.02
+optics:
+  nm: 1.33
+  na: 1.0
+  lbda: 0.517
+  directions:
+  - - 0.0
+    - 0.0
+    - 1.0
+  zernike:
+    defocus: 0.0
+    astig_0: 0.0
+    astig_45: 0.0
+    coma_x: 0.0
+    coma_y: 0.0
+    spherical: 0.0
+emission:
+  n_iterations: 240
+  stochastic: false
+  sparsity: 0.01
+  axial_incoherent: true
+camera:
+  bin_xy: 2
+  bin_z: 2
+  photons_peak: 200.0
+  background_photons: 0.0
+  poisson: false
+  read_noise_e: 0.0
+  offset: 12.9
+  gain: 247.7
+  bit_depth: 16
+engine:
+  device: cuda:1
+  deterministic: false
+  log_dir: ./log
+  save_fine_volume: false
+  save_gt_volume: true
+  save_label_volume: false
+  save_gif: true
+  gif_gamma: 0.5
+  gif_duration_ms: 80
+  gif_max_frames: 120
+  psf_report: false
