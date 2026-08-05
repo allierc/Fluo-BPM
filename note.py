@@ -20,6 +20,7 @@ from skimage import io
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+from matplotlib.colors import LinearSegmentedColormap, PowerNorm
 
 RI_SWEEP = [('dn0000', 0.0, 'dn = 0'), ('dn0025', 0.0025, 'dn = 0.0025'),
             ('dn0050', 0.005, 'dn = 0.005'), ('dn0100', 0.010, 'dn = 0.010'),
@@ -30,6 +31,117 @@ OUT = Path('archive/note')
 DATE = '2026-08-05'
 
 
+
+GREEN = LinearSegmentedColormap.from_list(
+    'fluo_green', ['#000000', '#0b3d17', '#1f9c3c', '#7fe08a', '#ffffff'])
+
+
+def show(ax, img, extent=None, lo=1.0, hi=99.9, gamma=0.85):
+    """One image panel: percentile window, gamma, black-to-green ramp.
+
+    The display range matters more than it sounds. These are widefield stacks with a
+    large out-of-focus pedestal, so stretching from zero puts every panel in the
+    mid-tones and hides exactly the structure the figure is about.
+    """
+    img = np.asarray(img, dtype=np.float64)
+    vmin, vmax = np.percentile(img, lo), np.percentile(img, hi)
+    if vmax <= vmin:
+        vmax = vmin + 1e-9
+    norm = PowerNorm(gamma=gamma, vmin=vmin, vmax=vmax)
+    ax.imshow(img, cmap=GREEN, norm=norm, extent=extent, aspect='equal',
+              interpolation='nearest', origin='lower')
+    ax.set_xticks([]); ax.set_yticks([])
+    ax.set_facecolor('black')
+    for sp in ax.spines.values():
+        sp.set_color('#444444')
+
+
+def panel_title(ax, text, size=10):
+    ax.set_title(text, color='white', fontsize=size, loc='left', pad=4)
+
+
+def dark_axes(ax):
+    ax.set_facecolor('black')
+    ax.tick_params(colors='white', labelsize=9)
+    for sp in ax.spines.values():
+        sp.set_color('white')
+
+
+def scalebar(ax, x0, y0, length_um, label, colour='white'):
+    ax.plot([x0, x0 + length_um], [y0, y0], color=colour, lw=2.5,
+            solid_capstyle='butt')
+    ax.text(x0 + length_um / 2, y0 + 0.4, label, color=colour, fontsize=8,
+            ha='center', va='bottom')
+
+
+def isolated_cell(data, min_sep_um=12.0, brightness_pct=70.0):
+    """An interior cell with no close neighbour, so a crop shows one cell, not a pair.
+
+    All arms share a seed, so the same cell is returned for every arm of a sweep.
+    """
+    cells = data['cells']
+    bright_cut = np.percentile(cells[:, 5], brightness_pct)
+    xyz = cells[:, 1:4]
+    nz, ny, nx = data['pe'].shape
+    vx, vy, vz = data['summary']['voxel_um']
+    Lx, Ly, Lz = nx * vx, ny * vy, nz * vz
+    best = None
+    for idx, (x, y, z) in enumerate(xyz):
+        if not (18 < x < Lx - 18 and 18 < y < Ly - 18 and 0.3 * Lz < z < 0.7 * Lz):
+            continue
+        if cells[idx, 5] < bright_cut:      # a dim cell makes an unreadable panel
+            continue
+        d = np.linalg.norm(np.delete(xyz, idx, axis=0) - np.array([x, y, z]), axis=1)
+        sep = d.min()
+        # take the most isolated candidate in the window rather than requiring a
+        # threshold: at 2 um minimum gap the typical neighbour sits ~10 um away, so a
+        # hard 14 um cut leaves nothing to plot
+        if best is None or sep > best[0]:
+            best = (sep, x, y, z, cells[idx, 4])
+    if best is None:
+        return None
+    if best[0] < min_sep_um:
+        print(f'  most isolated cell has a neighbour at {best[0]:.1f} um '
+              f'(wanted {min_sep_um:.0f}); crops may show part of it')
+    return {'x': best[1], 'y': best[2], 'z': best[3], 'r': best[4], 'sep': best[0]}
+
+
+def crops_at(data, cell, half_um=13.0, half_um_z=24.0):
+    """(xy, xz) crops centred on a cell, with um extents.
+
+    The axial half-range is larger than the lateral one on purpose: at NA 0.3 the cell
+    images 36 um long, so a +-13 um crop would cut off the very elongation the figure
+    is showing. Both are the same in every arm, so the arms stay comparable.
+    """
+    pe = data['pe']
+    vx, vy, vz = data['summary']['voxel_um']
+    nz, ny, nx = pe.shape
+    i = int(round(cell['x'] / vx - 0.5))
+    j = int(round(cell['y'] / vy - 0.5))
+    k = int(round(cell['z'] / vz - 0.5))
+    hx = int(round(half_um / vx)); hy = int(round(half_um / vy))
+    hz = int(round(half_um_z / vz))
+    i0, i1 = max(i - hx, 0), min(i + hx + 1, nx)
+    j0, j1 = max(j - hy, 0), min(j + hy + 1, ny)
+    k0, k1 = max(k - hz, 0), min(k + hz + 1, nz)
+    xy = pe[k, j0:j1, i0:i1]
+    xz = pe[k0:k1, j, i0:i1]
+    ext_xy = [(i0 - i) * vx, (i1 - 1 - i) * vx, (j0 - j) * vy, (j1 - 1 - j) * vy]
+    ext_xz = [(i0 - i) * vx, (i1 - 1 - i) * vx, (k0 - k) * vz, (k1 - 1 - k) * vz]
+    return (xy, ext_xy), (xz, ext_xz)
+
+
+def binned(profile, depth, n_bins=16):
+    """Median per depth bin: the per-plane contrast of a sparse phantom is far too
+    spiky to read as five overlapping traces."""
+    edges = np.linspace(depth[0], depth[-1], n_bins + 1)
+    which = np.clip(np.digitize(depth, edges) - 1, 0, n_bins - 1)
+    centres = 0.5 * (edges[:-1] + edges[1:])
+    med = np.array([np.nanmedian(profile[which == b]) if (which == b).any() else np.nan
+                    for b in range(n_bins)])
+    return centres, med
+
+
 def load(tag, root='log'):
     folder = Path(root) / tag
     summary = json.loads((folder / 'summary.json').read_text())
@@ -37,8 +149,11 @@ def load(tag, root='log'):
     stack = io.imread(folder / 'fluo.tif').astype(np.float32)
     gain = config['camera'].get('gain', 1.0) or 1.0
     pe = (stack - config['camera'].get('offset', 0.0)) / gain
-    gt = io.imread(folder / 'fluo_gt.tif').astype(np.float32)
-    cells = np.loadtxt(folder / 'gt_cells.csv', delimiter=',', skiprows=1)
+    # ground truth is optional: the Monte-Carlo arms only need the stack itself
+    gt_path, cells_path = folder / 'fluo_gt.tif', folder / 'gt_cells.csv'
+    gt = io.imread(gt_path).astype(np.float32) if gt_path.exists() else None
+    cells = (np.loadtxt(cells_path, delimiter=',', skiprows=1)
+             if cells_path.exists() else None)
     return {'summary': summary, 'config': config, 'pe': pe, 'gt': gt, 'cells': cells}
 
 
@@ -112,12 +227,13 @@ def cell_extent(data, n_cells=80):
 
 
 def figure_ri(path):
+    """Binned contrast against depth, near/far against dn, and the images themselves."""
     data = {tag: load(tag, root='log/RI_sweep') for tag, _, _ in RI_SWEEP}
-    fig, axes = plt.subplots(1, 2, figsize=(12.4, 4.4), facecolor='black')
-    for ax in axes:
-        ax.set_facecolor('black'); ax.tick_params(colors='white')
-        for sp in ax.spines.values():
-            sp.set_color('white')
+    fig = plt.figure(figsize=(13.0, 7.6), facecolor='black')
+    gs = fig.add_gridspec(2, 4, height_ratios=[1.05, 1.0], hspace=0.32, wspace=0.28)
+
+    ax0 = fig.add_subplot(gs[0, :2]); dark_axes(ax0)
+    ax1 = fig.add_subplot(gs[0, 2:]); dark_axes(ax1)
 
     colours = ['#bbbbbb', '#8ad48a', '#5ad4c0', '#5a8ce0', '#e05a5a']
     near, far, dns = [], [], []
@@ -125,89 +241,131 @@ def figure_ri(path):
         d = data[tag]
         c = cell_contrast(d)
         depth = (np.arange(len(c)) + 1) * d['summary']['voxel_um'][2]
-        axes[0].plot(depth, c, color=colour, lw=1.5, label=label)
+        centres, med = binned(c, depth)
+        ax0.plot(centres, med, 'o-', color=colour, lw=1.6, ms=3.5, label=label)
         q = max(len(c) // 4, 1)
         near.append(np.nanmedian(c[-q:])); far.append(np.nanmedian(c[:q])); dns.append(dn)
 
-    axes[0].axhline(0.0, color='white', ls=':', lw=1)
-    axes[0].set_xlabel('focal depth [um]   (objective side at the right)', color='white')
-    axes[0].set_ylabel('cell / gap contrast', color='white')
-    axes[0].set_title('(a)  contrast against depth', color='white', fontsize=11, loc='left')
-    axes[1].plot(dns, near, 'o-', color='#8ad48a', lw=1.6, label='near the objective')
-    axes[1].plot(dns, far, 'o-', color='#e05a5a', lw=1.6, label='far side')
-    axes[1].axhline(0.0, color='white', ls=':', lw=1)
-    axes[1].set_xlabel('cell index contrast  dn', color='white')
-    axes[1].set_ylabel('cell / gap contrast', color='white')
-    axes[1].set_title('(b)  near and far contrast against dn', color='white',
-                      fontsize=11, loc='left')
-    for ax in axes:
-        leg = ax.legend(facecolor='black', edgecolor='white', labelcolor='white', fontsize=9)
-        leg.get_frame().set_alpha(0.5)
-    fig.tight_layout(); fig.savefig(path, dpi=130, facecolor='black'); plt.close(fig)
+    ax0.axhline(0.0, color='white', ls=':', lw=1)
+    ax0.set_xlabel('focal depth [um]        objective side ->', color='white')
+    ax0.set_ylabel('cell / gap contrast', color='white')
+    panel_title(ax0, '(a)  contrast against depth, median per bin', 11)
+    leg = ax0.legend(facecolor='black', edgecolor='#666666', labelcolor='white',
+                     fontsize=8.5, ncol=2)
+    leg.get_frame().set_alpha(0.7)
+
+    ax1.plot(dns, near, 'o-', color='#8ad48a', lw=1.8, label='near the objective')
+    ax1.plot(dns, far, 'o-', color='#e05a5a', lw=1.8, label='far side')
+    ax1.axhline(0.0, color='white', ls=':', lw=1)
+    ax1.set_xlabel('cell index contrast  dn', color='white')
+    ax1.set_ylabel('cell / gap contrast', color='white')
+    panel_title(ax1, '(b)  near and far contrast against dn', 11)
+    leg = ax1.legend(facecolor='black', edgecolor='#666666', labelcolor='white', fontsize=8.5)
+    leg.get_frame().set_alpha(0.7)
+
+    # the images: control and strongest arm, far plane and near plane
+    letters = iter('cdef')
+    for col, tag in enumerate(['dn0000', 'dn0200']):
+        d = data[tag]
+        nz = d['pe'].shape[0]
+        vz = d['summary']['voxel_um'][2]
+        label = 'dn = 0' if tag == 'dn0000' else 'dn = 0.02'
+        for side, k in [('far side', 3), ('near objective', nz - 4)]:
+            ax = fig.add_subplot(gs[1, col * 2 + (0 if side == 'far side' else 1)])
+            img = d['pe'][k, 40:200, 40:200]
+            vx = d['summary']['voxel_um'][0]
+            ext = [0, img.shape[1] * vx, 0, img.shape[0] * vx]
+            show(ax, img, extent=ext, lo=1, hi=99.9, gamma=0.85)
+            panel_title(ax, f'({next(letters)})  {label}, {side}', 10)
+            if col == 0 and side == 'far side':
+                scalebar(ax, 2, 2, 10.0, '10 um')
+
+    fig.savefig(path, dpi=140, facecolor='black', bbox_inches='tight')
+    plt.close(fig)
     return [(lab, dn, n, f) for (_, dn, lab), n, f in zip(RI_SWEEP, near, far)]
 
 
 def figure_psf(path):
+    """The same isolated cell in xy and xz at each NA, same crop, same scale."""
+    arms = [(tag, na, load(tag, root='log/PSF_sweep')) for tag, na in PSF_SWEEP]
+    cell = isolated_cell(arms[0][2])
     rows = []
-    fig, axes = plt.subplots(2, len(PSF_SWEEP), figsize=(3.1 * len(PSF_SWEEP), 6.4),
-                             facecolor='black')
-    for col, (tag, na) in enumerate(PSF_SWEEP):
-        d = load(tag, root='log/PSF_sweep')
-        pe = d['pe']
-        vx, vy, vz = d['summary']['voxel_um']
-        nz, ny, nx = pe.shape
+
+    fig = plt.figure(figsize=(13.0, 6.4), facecolor='black')
+    gs = fig.add_gridspec(2, len(arms), hspace=0.20, wspace=0.10)
+    letters = 'abcdefghij'
+    for col, (tag, na, d) in enumerate(arms):
         lat, ax_ = cell_extent(d)
         rows.append((na, lat, ax_, ax_ / lat if lat else np.nan))
+        (xy, ext_xy), (xz, ext_xz) = crops_at(d, cell)
+        for row, (img, ext, plane) in enumerate([(xy, ext_xy, 'xy'), (xz, ext_xz, 'xz')]):
+            ax = fig.add_subplot(gs[row, col])
+            show(ax, img, extent=ext, lo=1, hi=99.9, gamma=0.85)
+            panel_title(ax, f'({letters[row * len(arms) + col]})  NA {na}, {plane}', 10)
+            if col == 0:
+                scalebar(ax, ext[0] + 1.5, ext[2] + 1.5, 5.0, '5 um')
+    fig.savefig(path, dpi=140, facecolor='black', bbox_inches='tight')
+    plt.close(fig)
 
-        xy = pe[nz // 2, ny // 2 - 64:ny // 2 + 64, nx // 2 - 64:nx // 2 + 64]
-        # z along the horizontal axis, physically scaled: a tall thin xz panel is
-        # unreadable in a row of five
-        xz = pe[:, ny // 2, nx // 2 - 64:nx // 2 + 64].T
-        for row, (img, aspect, tag_txt) in enumerate([
-                (xy, 1.0, 'xy'), (xz, vx / vz, 'xz  (z horizontal)')]):
-            a = axes[row, col]
-            a.imshow(img, cmap='Greens_r', aspect=aspect, vmin=0,
-                     vmax=np.percentile(img, 99.5))
-            a.set_xticks([]); a.set_yticks([]); a.set_facecolor('black')
-            a.set_title(f'({"abcdefghij"[row * len(PSF_SWEEP) + col]})  NA {na}, {tag_txt}',
-                        color='white', fontsize=10, loc='left', pad=5)
-    fig.tight_layout(); fig.savefig(path, dpi=130, facecolor='black'); plt.close(fig)
-
-    fig, ax = plt.subplots(figsize=(6.4, 4.2), facecolor='black')
-    ax.set_facecolor('black'); ax.tick_params(colors='white')
-    for sp in ax.spines.values():
-        sp.set_color('white')
+    fig, ax = plt.subplots(figsize=(6.6, 4.3), facecolor='black')
+    dark_axes(ax)
     na = [r[0] for r in rows]
-    ax.plot(na, [r[1] for r in rows], 'o-', color='#8ad48a', lw=1.6, label='lateral extent')
-    ax.plot(na, [r[2] for r in rows], 'o-', color='#e05a5a', lw=1.6, label='axial extent')
+    ax.plot(na, [r[1] for r in rows], 'o-', color='#8ad48a', lw=1.8, label='lateral')
+    ax.plot(na, [r[2] for r in rows], 'o-', color='#e05a5a', lw=1.8, label='axial')
+    ax.axhline(2 * np.median(arms[0][2]['cells'][:, 4]), color='white', ls=':', lw=1)
+    ax.text(0.98, 0.06, 'dotted: true cell diameter', color='white', fontsize=8.5,
+            ha='right', transform=ax.transAxes)
     ax.set_xlabel('numerical aperture', color='white')
     ax.set_ylabel('apparent cell extent, FWHM [um]', color='white')
-    ax.set_title('(a)  apparent cell size against NA', color='white', fontsize=11, loc='left')
-    leg = ax.legend(facecolor='black', edgecolor='white', labelcolor='white', fontsize=9)
-    leg.get_frame().set_alpha(0.5)
-    fig.tight_layout()
-    fig.savefig(str(path).replace('.png', '_extent.png'), dpi=130, facecolor='black')
+    panel_title(ax, '(a)  apparent cell size against NA', 11)
+    leg = ax.legend(facecolor='black', edgecolor='#666666', labelcolor='white', fontsize=9)
+    leg.get_frame().set_alpha(0.7)
+    fig.savefig(str(path).replace('.png', '_extent.png'), dpi=140, facecolor='black',
+                bbox_inches='tight')
     plt.close(fig)
     return rows
 
 
 def figure_mc(path):
+    """The 1/sqrt(W) law beside what it looks like at three values of W."""
     rows = json.loads(Path('log/mc_sweep/mc_sweep.json').read_text())
     n = np.array([r['n'] for r in rows], dtype=float)
     sp = np.array([r['speckle_pct'] for r in rows], dtype=float)
-    fig, ax = plt.subplots(figsize=(6.4, 4.2), facecolor='black')
-    ax.set_facecolor('black'); ax.tick_params(colors='white')
-    for s in ax.spines.values():
-        s.set_color('white')
-    ax.loglog(n, sp, 'o-', color='#e05a5a', lw=1.6, label='measured speckle')
-    ax.loglog(n, sp[0] * np.sqrt(n[0] / n), ':', color='white', lw=1.3,
-              label=r'$1/\sqrt{W}$ through the first point')
+
+    exponent = float(np.polyfit(np.log(n), np.log(sp), 1)[0])
+    fig = plt.figure(figsize=(13.0, 3.6), facecolor='black')
+    gs = fig.add_gridspec(1, 5, width_ratios=[1.9, 0.10, 1, 1, 1], wspace=0.16)
+    ax = fig.add_subplot(gs[0, 0]); dark_axes(ax)
+    ax.loglog(n, sp, 'o-', color='#e05a5a', lw=1.8, label='measured, detector off')
+    ax.loglog(n, sp[0] * np.sqrt(n[0] / n), ':', color='white', lw=1.4,
+              label=r'$1/\sqrt{W}$ for reference')
+    ax.loglog(n, sp[0] * (n / n[0]) ** exponent, '--', color='#8ad48a', lw=1.3,
+              label=f'fit, $W^{{{exponent:.2f}}}$')
     ax.set_xlabel('random phase draws  $W$', color='white')
     ax.set_ylabel('residual speckle [% of local mean]', color='white')
-    ax.set_title('(a)  speckle of the Monte-Carlo sum', color='white', fontsize=11, loc='left')
-    leg = ax.legend(facecolor='black', edgecolor='white', labelcolor='white', fontsize=9)
-    leg.get_frame().set_alpha(0.5)
-    fig.tight_layout(); fig.savefig(path, dpi=130, facecolor='black'); plt.close(fig)
+    panel_title(ax, '(a)  speckle of the Monte-Carlo average', 11)
+    leg = ax.legend(facecolor='black', edgecolor='#666666', labelcolor='white', fontsize=8.5)
+    leg.get_frame().set_alpha(0.7)
+
+    shown = [rows[0]['n'], rows[len(rows) // 2]['n'], rows[-1]['n']]
+    letters = iter('bcd')
+    for i, nn in enumerate(shown):
+        folder = f'log/mc_sweep/n{nn:04d}'
+        d = load(f'n{nn:04d}', root='log/mc_sweep')
+        pe = d['pe']
+        vx = d['summary']['voxel_um'][0]
+        img = pe[pe.shape[0] // 2, 48:176, 48:176]
+        a = fig.add_subplot(gs[0, 2 + i])
+        ext = [0, img.shape[1] * vx, 0, img.shape[0] * vx]
+        show(a, img, extent=ext, lo=1, hi=99.9, gamma=0.85)
+        panel_title(a, f'({next(letters)})  W = {nn}', 10)
+        a.set_anchor('C')
+        if i == 0:
+            scalebar(a, 1.5, 1.5, 5.0, '5 um')
+    fig.savefig(path, dpi=140, facecolor='black', bbox_inches='tight')
+    plt.close(fig)
+    for r in rows:
+        r['exponent'] = exponent
     return rows
 
 
@@ -305,10 +463,14 @@ sectioning at all.
 
 Equation~\eqref{eq:mc} is an expectation, and a finite $W$ leaves residue that looks
 exactly like detector noise. With the detector switched off entirely, the stack still
-fluctuates by @SPECKLE1@\,\% of the local mean at $W = @NFIRST@$, falling as
-$1/\sqrt{W}$ to @SPECKLE2@\,\% at $W = @NLAST@$ (Figure~1). Grain in a folder whose
-name says no measurement noise is this. The sweeps below run at $W = 240$ and
-$W = 1920$ respectively.
+fluctuates by @SPECKLE1@\,\% of the local mean at $W = @NFIRST@$, falling to
+@SPECKLE2@\,\% at $W = @NLAST@$ (Figure~1). The decay is close to but slower than the
+$1/\sqrt{W}$ that independent draws would give: fitted over this range it goes as
+$W^{@EXPONENT@}$, so 64 times the draws bought a factor 4.8 rather than 8. Draws are
+not fully independent here --- the same phantom and the same haze are common to all of
+them --- so the ideal law is a bound, not a prediction. Grain in a folder whose name
+says no measurement noise is this. The sweeps below run at $W = 240$ and $W = 1920$
+respectively.
 
 \section*{3. Sweep 2: refractive index}
 
@@ -368,27 +530,30 @@ supports the light-sheet case (excite one slice at a time), but a pinhole is not
 parameter change.
 
 \begin{figure}[t]
-\centering\includegraphics[width=0.5\textwidth]{mc.png}
-\caption*{\textbf{Figure 1.} Residual speckle of the Monte-Carlo average against the
-number of random phase draws, detector off, against a $1/\sqrt{W}$ reference.}
+\centering\includegraphics[width=\textwidth]{mc.png}
+\caption*{\textbf{Figure 1.} (a) Residual speckle of the Monte-Carlo average against
+the number of random phase draws, detector off, with the fitted power law and
+$1/\sqrt{W}$ for reference. (b--d) The same plane at three values of $W$.}
 \end{figure}
 
 \begin{figure}[t]
 \centering\includegraphics[width=\textwidth]{ri.png}
-\caption*{\textbf{Figure 2.} Index sweep, 384\,\textmu m deep, no measurement noise.
-(a) Cell/gap contrast against focal depth. (b) The same near the objective and on the
-far side, against $dn$; the dotted line is zero contrast.}
+\caption*{\textbf{Figure 2.} Index sweep, 384\,\textmu m deep, no measurement
+noise. (a) Cell/gap contrast against focal depth, median per depth bin. (b) The same
+near the objective and on the far side, against $dn$; dotted line is zero contrast.
+(c--f) The stacks themselves: the index-matched control looks the same at both ends,
+while at $dn = 0.02$ the far side has lost its cells.}
 \end{figure}
 
 \begin{figure}[t]
 \centering\includegraphics[width=\textwidth]{psf.png}
-\caption*{\textbf{Figure 3.} NA sweep. Top row $xy$ sections, bottom row $xz$ sections
-of the same volume, at the delivered voxel aspect. Lower NA leaves $xy$ nearly
-unchanged and stretches $z$.}
+\caption*{\textbf{Figure 3.} NA sweep, all panels the same isolated cell (the arms
+share a seed) at the same physical scale. Top row $xy$, bottom row $xz$. Lower NA
+leaves $xy$ nearly unchanged and stretches $z$.}
 \end{figure}
 
 \begin{figure}[t]
-\centering\includegraphics[width=0.5\textwidth]{psf_extent.png}
+\centering\includegraphics[width=0.62\textwidth]{psf_extent.png}
 \caption*{\textbf{Figure 4.} Apparent cell extent, measured at half maximum through
 each cell's own centre, against NA.}
 \end{figure}
@@ -422,6 +587,7 @@ def main():
         ('@NFIRST@', str(mc[0]['n'])),
         ('@SPECKLE2@', f"{mc[-1]['speckle_pct']:.1f}"),
         ('@NLAST@', str(mc[-1]['n'])),
+        ('@EXPONENT@', f"{mc[0].get('exponent', float('nan')):.2f}"),
         ('@RIROWS@', ri_rows),
         ('@PSFROWS@', psf_rows),
     ]:

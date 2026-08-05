@@ -92,10 +92,14 @@ sectioning at all.
 
 Equation~\eqref{eq:mc} is an expectation, and a finite $W$ leaves residue that looks
 exactly like detector noise. With the detector switched off entirely, the stack still
-fluctuates by 9.5\,\% of the local mean at $W = 30$, falling as
-$1/\sqrt{W}$ to 2.0\,\% at $W = 1920$ (Figure~1). Grain in a folder whose
-name says no measurement noise is this. The sweeps below run at $W = 240$ and
-$W = 1920$ respectively.
+fluctuates by 9.5\,\% of the local mean at $W = 30$, falling to
+2.0\,\% at $W = 1920$ (Figure~1). The decay is close to but slower than the
+$1/\sqrt{W}$ that independent draws would give: fitted over this range it goes as
+$W^{-0.38}$, so 64 times the draws bought a factor 4.8 rather than 8. Draws are
+not fully independent here --- the same phantom and the same haze are common to all of
+them --- so the ideal law is a bound, not a prediction. Grain in a folder whose name
+says no measurement noise is this. The sweeps below run at $W = 240$ and $W = 1920$
+respectively.
 
 \section*{3. Sweep 2: refractive index}
 
@@ -163,27 +167,30 @@ supports the light-sheet case (excite one slice at a time), but a pinhole is not
 parameter change.
 
 \begin{figure}[t]
-\centering\includegraphics[width=0.5\textwidth]{mc.png}
-\caption*{\textbf{Figure 1.} Residual speckle of the Monte-Carlo average against the
-number of random phase draws, detector off, against a $1/\sqrt{W}$ reference.}
+\centering\includegraphics[width=\textwidth]{mc.png}
+\caption*{\textbf{Figure 1.} (a) Residual speckle of the Monte-Carlo average against
+the number of random phase draws, detector off, with the fitted power law and
+$1/\sqrt{W}$ for reference. (b--d) The same plane at three values of $W$.}
 \end{figure}
 
 \begin{figure}[t]
 \centering\includegraphics[width=\textwidth]{ri.png}
-\caption*{\textbf{Figure 2.} Index sweep, 384\,\textmu m deep, no measurement noise.
-(a) Cell/gap contrast against focal depth. (b) The same near the objective and on the
-far side, against $dn$; the dotted line is zero contrast.}
+\caption*{\textbf{Figure 2.} Index sweep, 384\,\textmu m deep, no measurement
+noise. (a) Cell/gap contrast against focal depth, median per depth bin. (b) The same
+near the objective and on the far side, against $dn$; dotted line is zero contrast.
+(c--f) The stacks themselves: the index-matched control looks the same at both ends,
+while at $dn = 0.02$ the far side has lost its cells.}
 \end{figure}
 
 \begin{figure}[t]
 \centering\includegraphics[width=\textwidth]{psf.png}
-\caption*{\textbf{Figure 3.} NA sweep. Top row $xy$ sections, bottom row $xz$ sections
-of the same volume, at the delivered voxel aspect. Lower NA leaves $xy$ nearly
-unchanged and stretches $z$.}
+\caption*{\textbf{Figure 3.} NA sweep, all panels the same isolated cell (the arms
+share a seed) at the same physical scale. Top row $xy$, bottom row $xz$. Lower NA
+leaves $xy$ nearly unchanged and stretches $z$.}
 \end{figure}
 
 \begin{figure}[t]
-\centering\includegraphics[width=0.5\textwidth]{psf_extent.png}
+\centering\includegraphics[width=0.62\textwidth]{psf_extent.png}
 \caption*{\textbf{Figure 4.} Apparent cell extent, measured at half maximum through
 each cell's own centre, against NA.}
 \end{figure}
