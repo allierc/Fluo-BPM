@@ -1,7 +1,7 @@
 {
   "name": "cells_dense",
   "description": "Ground-truth dataset, main variant. 2000 spherical cells (radius 5-9 um, so 10-18 um across) with lognormal brightness in a 256 x 256 x 256 um volume, imaged at NA 0.5 and delivered on a 1 x 1 x 4 um voxel grid with shot and read noise. Cells refract (dn = 0.02) so the PSF degrades with depth; the medium is index-matched.\n",
-  "git_rev": "f6387c0",
+  "git_rev": "587705f",
   "seed": 42,
   "n_objects": 2000,
   "fill_fraction": 0.15866269171237946,
@@ -17,13 +17,13 @@
   "photons": {
     "peak_photons": 305.0,
     "background_photons": 5.0,
-    "mean_bright_photons": 122.56603240966797,
-    "shot_noise_e": 11.294513376399532,
+    "mean_bright_photons": 183.4612274169922,
+    "shot_noise_e": 13.728118130938128,
     "read_noise_e": 2.0,
     "noise_applied": true,
-    "snr_bright": 10.685583411260648
+    "snr_bright": 13.224299278469138
   },
-  "photon_scale": 0.18945330356885437,
+  "photon_scale": 0.0011631694744588278,
   "voxel_um": [
     1.0,
     1.0,
@@ -35,8 +35,8 @@
     256
   ],
   "timing_s": {
-    "phantom": 1.0689082145690918,
-    "simulation": 10.329663276672363,
-    "total": 16.232956647872925
+    "phantom": 1.0486845970153809,
+    "simulation": 11.397339820861816,
+    "total": 17.33849596977234
   }
 }

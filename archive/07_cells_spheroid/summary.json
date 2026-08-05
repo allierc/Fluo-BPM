@@ -1,7 +1,7 @@
 {
   "name": "cells_spheroid",
   "description": "Spheroid rather than dispersed cells: 550 larger cells (radius 5-7 um) packed inside one 70 um ball at the centre of the volume. Light reaching the far side has crossed the whole aggregate, so this is the variant where depth-dependent scattering dominates.\n",
-  "git_rev": "f6387c0",
+  "git_rev": "587705f",
   "seed": 7,
   "n_objects": 550,
   "fill_fraction": 0.02536053955554962,
@@ -17,13 +17,13 @@
   "photons": {
     "peak_photons": 305.0,
     "background_photons": 5.0,
-    "mean_bright_photons": 119.9169692993164,
-    "shot_noise_e": 11.176626024848304,
+    "mean_bright_photons": 174.02195739746094,
+    "shot_noise_e": 13.37990872156686,
     "read_noise_e": 2.0,
     "noise_applied": true,
-    "snr_bright": 10.561499926050212
+    "snr_bright": 12.86330156865619
   },
-  "photon_scale": 0.24363153743634114,
+  "photon_scale": 0.001916981903690829,
   "voxel_um": [
     1.0,
     1.0,
@@ -35,8 +35,8 @@
     256
   ],
   "timing_s": {
-    "phantom": 2.35392427444458,
-    "simulation": 10.071429252624512,
-    "total": 16.65057611465454
+    "phantom": 2.274050235748291,
+    "simulation": 11.598978042602539,
+    "total": 18.102437734603882
   }
 }

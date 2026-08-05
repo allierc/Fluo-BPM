@@ -1,7 +1,7 @@
 {
   "name": "beads_psf_aberrated",
   "description": "PSF probe, xyz-varying case. 5 x 5 x 13 sub-resolution beads on a grid through an volume with a smooth random index landscape and an aberrated pupil, so the measured width depends on field position as well as depth. Compare psf_table.csv against the ideal probe.\n",
-  "git_rev": "f6387c0",
+  "git_rev": "587705f",
   "seed": 3,
   "n_objects": 325,
   "fill_fraction": 4.842877388000488e-06,
@@ -17,13 +17,13 @@
   "photons": {
     "peak_photons": 305.0,
     "background_photons": 5.0,
-    "mean_bright_photons": 18.77678680419922,
-    "shot_noise_e": 4.876144666045012,
+    "mean_bright_photons": 32.34648132324219,
+    "shot_noise_e": 6.111176754377358,
     "read_noise_e": 2.0,
     "noise_applied": true,
-    "snr_bright": 3.5627083569039093
+    "snr_bright": 5.0304607715633365
   },
-  "photon_scale": 0.4490698738909613,
+  "photon_scale": 0.8099189364277404,
   "voxel_um": [
     1.0,
     1.0,
@@ -35,14 +35,14 @@
     256
   ],
   "timing_s": {
-    "phantom": 10.07423996925354,
-    "simulation": 20.288832426071167,
-    "total": 35.063889503479004
+    "phantom": 10.257703304290771,
+    "simulation": 22.668135166168213,
+    "total": 37.553053855895996
   },
   "psf": {
-    "fwhm_xy_um_mean": 0.7063320462035158,
-    "fwhm_xy_um_std": 0.11167149832982744,
-    "fwhm_z_um_mean": 4.259732761883383,
-    "fwhm_z_um_std": 0.9881480644686965
+    "fwhm_xy_um_mean": 0.9158108071088581,
+    "fwhm_xy_um_std": 0.1617990683756681,
+    "fwhm_z_um_mean": 7.1954555127284685,
+    "fwhm_z_um_std": 1.6285397116545424
   }
 }

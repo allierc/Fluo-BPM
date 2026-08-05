@@ -4,20 +4,20 @@ Ground-truth dataset, main variant. 2000 spherical cells (radius 5-9 um, so 10-1
 
 ## As run
 
-- git rev `f6387c0`, seed `42`
+- git rev `587705f`, seed `42`
 - 2000 objects, fill fraction 15.87%
 - delivered stack `[64, 256, 256]` (z, y, x) at voxel 1.0 x 1.0 x 4.0 um
 - lateral resolution 0.53 um, axial 5.45 um
-- peak 305 photons; bright-voxel SNR 10.7
-- ran in 16 s
+- peak 305 photons; bright-voxel SNR 13.2
+- ran in 17 s
 
 ## Measured against ground truth
 
-- detection efficiency, surface / deepest octant: 0.77
-- emission recovery correlation: 0.672
-- brightest voxel vs true centre: lateral median 2.24 um, axial median 4.0 um (bounded below by the 4 um voxel)
+- detection efficiency, surface / deepest octant: 0.87
+- emission recovery correlation: 0.679
+- brightest voxel vs true centre: lateral median 2.83 um, axial median 4.0 um (bounded below by the 4 um voxel)
 - nearest-neighbour distance median 15.3 um, 0.0% closer than the axial resolution
-- noise check: measured std 9.7 vs shot+read prediction 9.7 (ratio 1.00)
+- noise check: measured std 11.8 vs shot+read prediction 11.8 (ratio 1.00)
 
 ## Files
 

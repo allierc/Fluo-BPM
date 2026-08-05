@@ -1,21 +1,21 @@
 {
   "name": "cells_dense",
   "n_cells": 2000,
-  "efficiency_median": 106.11283300854548,
+  "efficiency_median": 150.03841548113763,
   "efficiency_depth_profile": [
-    0.7659246268644632,
-    0.7817003282788759,
-    0.746086785086575,
-    0.8727156838451162,
-    0.8799672515377636,
-    0.9621659741843149,
-    0.9810188595615126,
-    1.0
+    0.8326060812564818,
+    0.8518405207316336,
+    0.8255122122593009,
+    0.9358213430547784,
+    0.9329505215586087,
+    1.0,
+    0.9917500217765843,
+    0.9592019215538033
   ],
-  "efficiency_surface_vs_deep": 0.7659246268644632,
-  "brightness_correlation_peak": 0.4616478338032951,
-  "brightness_correlation_integrated": 0.6717758580090417,
-  "offset_lateral_um_median": 2.23606797749979,
+  "efficiency_surface_vs_deep": 0.8680196135426315,
+  "brightness_correlation_peak": 0.4631669752902947,
+  "brightness_correlation_integrated": 0.6793831974172349,
+  "offset_lateral_um_median": 2.8284271247461903,
   "offset_lateral_um_p90": 3.605551275463989,
   "offset_axial_um_median": 4.0,
   "offset_axial_um_p90": 8.0,
@@ -24,8 +24,8 @@
   "axial_resolution_um": 5.4528651080930315,
   "voxel_z_um": 4.0,
   "noise": {
-    "measured_std": 9.719164848327637,
-    "predicted_std": 9.714896202087402,
-    "ratio": 1.0004393918526189
+    "measured_std": 11.788681983947754,
+    "predicted_std": 11.783559799194336,
+    "ratio": 1.0004346890787423
   }
 }

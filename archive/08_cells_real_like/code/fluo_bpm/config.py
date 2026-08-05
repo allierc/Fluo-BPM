@@ -142,6 +142,10 @@ class EmissionConfig(BaseModel):
     n_iterations: int = 200            # Monte Carlo random-phase realizations
     stochastic: bool = False           # STORM/PALM sparse activation
     sparsity: float = 0.01
+    axial_incoherent: bool = True      # independent emission phase per plane. False
+                                       # reuses one screen for the whole volume, which
+                                       # makes each cell's layers mutually coherent and
+                                       # rings its centre with Fresnel zones.
 
 
 class CameraConfig(BaseModel):

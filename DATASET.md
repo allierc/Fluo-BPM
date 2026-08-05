@@ -59,6 +59,11 @@ lambda 0.532 um, n 1.33: lateral resolution 0.53 um, axial 5.45 um. Widefield
 detection, so there is no optical sectioning and every plane carries out-of-focus
 light from the whole volume.
 
+NA 0.5 is not a free choice at these voxel sizes: the simulation grid must satisfy
+`dx < lbda/(2 NA)`, so `dx = 0.5 um` caps NA at 0.53. A higher-NA configuration needs
+a finer simulation grid — NA 0.8 wants `dx <= 0.33 um`, e.g. `dx = 1/3 um` with
+`bin_xy = 3` to keep the delivered pixel at 1 um.
+
 | config | contents |
 |---|---|
 | `cells_dense` | 2000 cells, radius 5–9 um (10–18 um across), lognormal brightness spanning ~30x, index contrast 0.02, shot + read noise. The main variant. |
@@ -75,18 +80,18 @@ asserting them:
 
 | run | cells | eff surface/deep | r(emission) | lateral offset | nn median | PSF lateral FWHM |
 |---|---|---|---|---|---|---|
-| `beads_psf` | 325 | 0.97 | n/a | 0.00 um | 21.0 um | 0.52 +- 0.00 um |
-| `beads_psf_aberrated` | 325 | 0.50 | n/a | 1.00 um | 21.0 um | 0.71 +- 0.11 um |
-| `cells_dense` | 2000 | 0.77 | 0.672 | 2.24 um | 15.3 um | — |
-| `cells_dense_aberrated` | 2000 | 0.85 | 0.661 | 2.83 um | 15.3 um | — |
-| `cells_spheroid` | 550 | 0.78 | 0.526 | 2.24 um | 11.8 um | — |
-| `cells_real_like` | 130 | 1.07 | 0.872 | 2.00 um | 28.4 um | — |
+| `beads_psf` | 325 | 1.00 | n/a | 0.00 um | 21.0 um | 0.53 +- 0.00 um |
+| `beads_psf_aberrated` | 325 | 0.46 | n/a | 1.00 um | 21.0 um | 0.92 +- 0.16 um |
+| `cells_dense` | 2000 | 0.87 | 0.679 | 2.83 um | 15.3 um | — |
+| `cells_dense_aberrated` | 2000 | 0.90 | 0.671 | 3.00 um | 15.3 um | — |
+| `cells_spheroid` | 550 | 0.86 | 0.529 | 2.83 um | 11.8 um | — |
+| `cells_real_like` | 130 | 1.14 | 0.874 | 3.00 um | 28.4 um | — |
 
 Reading of those columns:
 
 - **eff surface/deep** — detected peak over true brightness for the shallowest
   octant divided by the deepest. 0.97 for the index-matched bead grid: with
-  nothing to refract, depth costs nothing. 0.77 for the dense cells and 0.78 for
+  nothing to refract, depth costs nothing. 0.87 for the dense cells and 0.86 for
   the spheroid: light from a shallow cell crosses 250 um of refracting tissue
   before the pupil. A control run confirmed the mechanism — with `dn_cell = 0`
   the profile is flat (0.91–1.00 across octants), with `dn_cell = 0.02` it falls
@@ -98,10 +103,26 @@ Reading of those columns:
 - **lateral offset** — distance from a cell's true centre to the brightest voxel
   near it. 0 um for beads (a point emitter images to its own voxel), ~2 um for
   cells, where the brightest voxel is set by the local haze as much as by the cell.
-- **PSF lateral FWHM** — 0.52 um matches the 0.53 um diffraction limit, and its
+- **PSF lateral FWHM** — 0.53 um matches the 0.53 um diffraction limit, and its
   0.00 um spread over 325 positions confirms the reference configuration is
   shift-invariant. The aberrated probe is both wider and *variable*
-  (0.71 +- 0.11 um): that spread is the field dependence.
+  (0.92 +- 0.16 um): that spread is the field dependence.
+
+## Emission coherence
+
+Fluorescence is incoherent in all three dimensions: every fluorophore emits with an
+independent random phase. The Monte Carlo therefore draws an independent phase screen
+**per plane**, not one screen shared down the volume (`emission.axial_incoherent`,
+default true).
+
+Sharing one screen — which is what the original loop did — makes every fluorophore in
+an (x, y) column perfectly in phase, so the ~30 axial layers of one cell add
+coherently and interfere on axis. The result is Fresnel-zone rings at the centre of
+every cell, identical in every realization, so averaging more realizations does not
+remove them. It also moves light: switching to per-plane phases doubled the mean
+in-cell signal (19.2 -> 38.0 photons on `cells_real_like`), because the coherent
+columns had been redistributing that light into the interference pattern. Set the flag
+false to reproduce the old behaviour.
 
 ## Reproducibility
 

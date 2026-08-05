@@ -1,7 +1,7 @@
 {
   "name": "cells_real_like",
   "description": "Matched by eye to a real widefield plane the user supplied: cells spanning about an eighth of the frame, nearly touching, a wide brightness spread with a few near-saturated cells, heavy out-of-focus haze, and visible grain on that haze. Scaled from the reference by pixel count rather than by microns: cells are ~30 px in diameter with ~10 across the frame, which on the 1 um delivered grid of the other configurations means a 320 px field and 24-32 um cells.\n",
-  "git_rev": "0d42420",
+  "git_rev": "587705f",
   "seed": 11,
   "n_objects": 130,
   "fill_fraction": 0.21097869873046876,
@@ -17,13 +17,13 @@
   "photons": {
     "peak_photons": 306.0,
     "background_photons": 6.0,
-    "mean_bright_photons": 72.71198272705078,
-    "shot_noise_e": 8.871977385400099,
+    "mean_bright_photons": 162.79183959960938,
+    "shot_noise_e": 12.991991363898352,
     "read_noise_e": 3.0,
     "noise_applied": true,
-    "snr_bright": 7.763839041219897
+    "snr_bright": 12.20890513106888
   },
-  "photon_scale": 0.08556844451915589,
+  "photon_scale": 0.000913753648589764,
   "voxel_um": [
     1.0,
     1.0,
@@ -35,8 +35,8 @@
     320
   ],
   "timing_s": {
-    "phantom": 0.4129140377044678,
-    "simulation": 3.1110289096832275,
-    "total": 5.713968276977539
+    "phantom": 0.4108142852783203,
+    "simulation": 3.2985727787017822,
+    "total": 5.953325271606445
   }
 }

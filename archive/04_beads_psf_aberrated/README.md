@@ -4,21 +4,21 @@ PSF probe, xyz-varying case. 5 x 5 x 13 sub-resolution beads on a grid through a
 
 ## As run
 
-- git rev `f6387c0`, seed `3`
+- git rev `587705f`, seed `3`
 - 325 objects, fill fraction 0.00%
 - delivered stack `[64, 256, 256]` (z, y, x) at voxel 1.0 x 1.0 x 4.0 um
 - lateral resolution 0.53 um, axial 5.45 um
-- peak 305 photons; bright-voxel SNR 3.6
-- ran in 35 s
-- PSF over the bead grid: lateral FWHM 0.71 +- 0.11 um, axial 4.26 +- 0.99 um
+- peak 305 photons; bright-voxel SNR 5.0
+- ran in 38 s
+- PSF over the bead grid: lateral FWHM 0.92 +- 0.16 um, axial 7.20 +- 1.63 um
 
 ## Measured against ground truth
 
-- detection efficiency, surface / deepest octant: 0.50
+- detection efficiency, surface / deepest octant: 0.46
 - emission recovery correlation: n/a (uniform brightness)
 - brightest voxel vs true centre: lateral median 1.00 um, axial median 4.0 um (bounded below by the 4 um voxel)
 - nearest-neighbour distance median 21.0 um, 0.0% closer than the axial resolution
-- noise check: measured std 3.6 vs shot+read prediction 3.5 (ratio 1.00)
+- noise check: measured std 3.9 vs shot+read prediction 3.9 (ratio 1.00)
 
 ## Files
 

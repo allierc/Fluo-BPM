@@ -33,6 +33,7 @@ class Config:
     sparsity: float = 0.005       # Fraction active fluorophores (0.5%)
     seed: Optional[int] = 42      # Monte Carlo seed; None = draw from entropy
     deterministic: bool = False   # Also pin cuDNN/algorithm choice (see set_deterministic)
+    axial_incoherent: bool = True # Independent emission phase per plane (see forward)
 
     def __post_init__(self):
         if self.directions is None:
@@ -242,12 +243,19 @@ class FluorescenceBPM(torch.nn.Module):
         fluo_layers = fluo_active.unbind(dim=2)
         
         # Forward propagation through volume
+        per_plane_phase = phi is None or self.config.axial_incoherent
         for i in range(self.Nz):
             # Phase from refractive index
             depha = field * torch.exp(dn_layers[i] * coef)
-            
-            # Fluorescence source term
-            S = torch.sqrt(fluo_layers[i]) * torch.exp(phi * 1.j)
+
+            # Fluorescence source term. The emission phase must be independent per
+            # plane, not one screen shared down the whole volume: sharing it makes
+            # every fluorophore in an (x, y) column perfectly in phase, so the ~30
+            # axial layers of one cell add coherently and interfere on axis. That
+            # puts Fresnel-zone rings at the centre of every cell, identically in
+            # every realization, so averaging more realizations cannot remove them.
+            phi_i = self.sample_phase() if per_plane_phase else phi
+            S = torch.sqrt(fluo_layers[i]) * torch.exp(phi_i * 1.j)
             S = torch.fft.ifftn(torch.fft.fftn(S) * pupil_mask)
             
             # Split-step: source + propagation

@@ -4,20 +4,20 @@ Spheroid rather than dispersed cells: 550 larger cells (radius 5-7 um) packed in
 
 ## As run
 
-- git rev `f6387c0`, seed `7`
+- git rev `587705f`, seed `7`
 - 550 objects, fill fraction 2.54%
 - delivered stack `[64, 256, 256]` (z, y, x) at voxel 1.0 x 1.0 x 4.0 um
 - lateral resolution 0.53 um, axial 5.45 um
-- peak 305 photons; bright-voxel SNR 10.6
-- ran in 17 s
+- peak 305 photons; bright-voxel SNR 12.9
+- ran in 18 s
 
 ## Measured against ground truth
 
-- detection efficiency, surface / deepest octant: 0.78
-- emission recovery correlation: 0.526
-- brightest voxel vs true centre: lateral median 2.24 um, axial median 4.0 um (bounded below by the 4 um voxel)
+- detection efficiency, surface / deepest octant: 0.86
+- emission recovery correlation: 0.529
+- brightest voxel vs true centre: lateral median 2.83 um, axial median 4.0 um (bounded below by the 4 um voxel)
 - nearest-neighbour distance median 11.8 um, 0.0% closer than the axial resolution
-- noise check: measured std 6.7 vs shot+read prediction 6.7 (ratio 1.00)
+- noise check: measured std 7.9 vs shot+read prediction 7.8 (ratio 1.00)
 
 ## Files
 

@@ -1,7 +1,7 @@
 {
   "name": "beads_psf",
   "description": "PSF probe, ideal case. 5 x 5 x 13 sub-resolution beads on a grid through an index-matched volume with an unaberrated pupil: the PSF should depend on depth only through defocus, and not on x or y. This is the reference the aberrated probe is measured against.\n",
-  "git_rev": "f6387c0",
+  "git_rev": "587705f",
   "seed": 3,
   "n_objects": 325,
   "fill_fraction": 4.842877388000488e-06,
@@ -17,13 +17,13 @@
   "photons": {
     "peak_photons": 305.0,
     "background_photons": 5.0,
-    "mean_bright_photons": 14.688191413879395,
-    "shot_noise_e": 4.437137750158247,
+    "mean_bright_photons": 14.866241455078125,
+    "shot_noise_e": 4.457156207165969,
     "read_noise_e": 2.0,
     "noise_applied": true,
-    "snr_bright": 3.0178828125557176
+    "snr_bright": 3.0430505533279275
   },
-  "photon_scale": 0.3427346419987722,
+  "photon_scale": 0.37135821213747205,
   "voxel_um": [
     1.0,
     1.0,
@@ -35,14 +35,14 @@
     256
   ],
   "timing_s": {
-    "phantom": 0.18053126335144043,
-    "simulation": 19.76406693458557,
-    "total": 24.663928747177124
+    "phantom": 0.1784651279449463,
+    "simulation": 22.727307319641113,
+    "total": 27.36778163909912
   },
   "psf": {
-    "fwhm_xy_um_mean": 0.5221472100904664,
-    "fwhm_xy_um_std": 0.00390863070459742,
-    "fwhm_z_um_mean": 4.441830314046264,
-    "fwhm_z_um_std": 0.08828666772054648
+    "fwhm_xy_um_mean": 0.5314865696989786,
+    "fwhm_xy_um_std": 0.0007834425098575572,
+    "fwhm_z_um_mean": 4.6978113761371185,
+    "fwhm_z_um_std": 0.01175479322792039
   }
 }

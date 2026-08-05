@@ -4,17 +4,17 @@ PSF probe, ideal case. 5 x 5 x 13 sub-resolution beads on a grid through an inde
 
 ## As run
 
-- git rev `f6387c0`, seed `3`
+- git rev `587705f`, seed `3`
 - 325 objects, fill fraction 0.00%
 - delivered stack `[64, 256, 256]` (z, y, x) at voxel 1.0 x 1.0 x 4.0 um
 - lateral resolution 0.53 um, axial 5.45 um
 - peak 305 photons; bright-voxel SNR 3.0
-- ran in 25 s
-- PSF over the bead grid: lateral FWHM 0.52 +- 0.00 um, axial 4.44 +- 0.09 um
+- ran in 27 s
+- PSF over the bead grid: lateral FWHM 0.53 +- 0.00 um, axial 4.70 +- 0.01 um
 
 ## Measured against ground truth
 
-- detection efficiency, surface / deepest octant: 0.97
+- detection efficiency, surface / deepest octant: 1.00
 - emission recovery correlation: n/a (uniform brightness)
 - brightest voxel vs true centre: lateral median 0.00 um, axial median 0.0 um (bounded below by the 4 um voxel)
 - nearest-neighbour distance median 21.0 um, 0.0% closer than the axial resolution

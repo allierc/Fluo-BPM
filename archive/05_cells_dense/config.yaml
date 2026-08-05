@@ -68,6 +68,7 @@ emission:
     n_iterations: 200
     stochastic: false
     sparsity: 0.01
+    axial_incoherent: true
 camera:
     bin_xy: 2
     bin_z: 4

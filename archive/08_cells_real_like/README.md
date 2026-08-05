@@ -4,20 +4,20 @@ Matched by eye to a real widefield plane the user supplied: cells spanning about
 
 ## As run
 
-- git rev `0d42420`, seed `11`
+- git rev `587705f`, seed `11`
 - 130 objects, fill fraction 21.10%
 - delivered stack `[16, 320, 320]` (z, y, x) at voxel 1.0 x 1.0 x 4.0 um
 - lateral resolution 0.53 um, axial 5.45 um
-- peak 306 photons; bright-voxel SNR 7.8
+- peak 306 photons; bright-voxel SNR 12.2
 - ran in 6 s
 
 ## Measured against ground truth
 
-- detection efficiency, surface / deepest octant: 1.07
-- emission recovery correlation: 0.872
-- brightest voxel vs true centre: lateral median 2.00 um, axial median 12.0 um (bounded below by the 4 um voxel)
+- detection efficiency, surface / deepest octant: 1.14
+- emission recovery correlation: 0.874
+- brightest voxel vs true centre: lateral median 3.00 um, axial median 8.0 um (bounded below by the 4 um voxel)
 - nearest-neighbour distance median 28.4 um, 0.0% closer than the axial resolution
-- noise check: measured std 6.1 vs shot+read prediction 6.1 (ratio 1.00)
+- noise check: measured std 8.3 vs shot+read prediction 8.3 (ratio 1.00)
 
 ## Files
 

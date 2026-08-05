@@ -100,6 +100,7 @@ def run(config: FluoBPMConfig, out_dir: str = None) -> dict:
         z_min=0.0, z_max=nz_sim * vol.dz,
         device=device, directions=[list(d) for d in opt.directions],
         stochastic=config.emission.stochastic, sparsity=config.emission.sparsity,
+        axial_incoherent=config.emission.axial_incoherent,
         seed=config.seed, deterministic=False,   # already applied above
     )
     model = FluorescenceBPM(bpm_config, dn=dn_t, fluo=fluo_t)
@@ -112,11 +113,13 @@ def run(config: FluoBPMConfig, out_dir: str = None) -> dict:
     t0 = time.time()
     n_dirs = len(opt.directions)
     I_total = torch.zeros_like(model.dn)
+    # phi=None lets the model draw an independent phase screen per plane
+    phi = None if config.emission.axial_incoherent else model.sample_phase()
     for n in tqdm(range(config.emission.n_iterations), desc='emission'):
-        phi = model.sample_phase()
         with torch.no_grad():
             for d in range(n_dirs):
-                I_total += model(field_number=d, phi=phi)
+                I_total += model(field_number=d,
+                                 phi=None if phi is None else model.sample_phase())
     t_sim = time.time() - t0
     print(f"simulation: {config.emission.n_iterations} realizations x {n_dirs} direction(s) "
           f"in {t_sim:.1f} s ({config.emission.n_iterations/t_sim:.1f} it/s)")
