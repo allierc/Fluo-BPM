@@ -1,0 +1,54 @@
+description: >
+  Spheroid rather than dispersed cells: 550 larger cells (radius 5-7 um) packed inside one 70 um ball at
+  the centre of the volume. Light reaching the far side has crossed the whole
+  aggregate, so this is the variant where depth-dependent scattering dominates.
+seed: 7
+
+volume:
+  nx: 512
+  ny: 512
+  nz: 256
+  dx: 0.5
+  dz: 1.0
+
+phantom:
+  type: spheroid
+  n_cells: 550
+  spheroid_radius_um: 70.0
+  radius_um: [5.0, 7.0]
+  min_gap_um: 0.3
+  edge_um: 0.4
+  dn_cell: 0.025
+  brightness:
+    dist: lognormal
+    sigma: 0.5
+    clip: [0.1, 3.0]
+
+medium:
+  type: none
+
+optics:
+  nm: 1.33
+  na: 0.5
+  lbda: 0.532
+
+emission:
+  n_iterations: 200
+  stochastic: false
+
+camera:
+  bin_xy: 2
+  bin_z: 4
+  photons_peak: 300.0
+  background_photons: 5.0
+  poisson: true
+  read_noise_e: 2.0
+  offset: 100.0
+  bit_depth: 16
+
+engine:
+  device: cuda:1
+  log_dir: ./log
+  save_gt_volume: true
+  save_label_volume: true
+  save_gif: true

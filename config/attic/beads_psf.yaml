@@ -1,0 +1,51 @@
+description: >
+  PSF probe, ideal case. 5 x 5 x 13 sub-resolution beads on a grid through an
+  index-matched volume with an unaberrated pupil: the PSF should depend on depth
+  only through defocus, and not on x or y. This is the reference the aberrated
+  probe is measured against.
+seed: 3
+
+volume:
+  nx: 512
+  ny: 512
+  nz: 256
+  dx: 0.5
+  dz: 1.0
+
+phantom:
+  type: beads
+  bead_grid: [5, 5, 13]
+  bead_radius_um: 0.15
+  bead_brightness: 1.0
+  dn_cell: 0.0
+
+medium:
+  type: none
+
+optics:
+  nm: 1.33
+  na: 0.5
+  lbda: 0.532
+
+emission:
+  n_iterations: 400
+  stochastic: false
+
+camera:
+  bin_xy: 2
+  bin_z: 4
+  photons_peak: 300.0
+  background_photons: 5.0
+  poisson: true
+  read_noise_e: 2.0
+  offset: 100.0
+  bit_depth: 16
+
+engine:
+  device: cuda:1
+  log_dir: ./log
+  save_gt_volume: true
+  save_label_volume: false
+  save_fine_volume: false
+  save_gif: true
+  psf_report: true

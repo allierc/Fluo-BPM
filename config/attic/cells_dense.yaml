@@ -1,0 +1,59 @@
+description: >
+  Ground-truth dataset, main variant. 2000 spherical cells (radius 5-9 um,
+  so 10-18 um across) with lognormal
+  brightness in a 256 x 256 x 256 um volume, imaged at NA 0.5 and delivered on a
+  1 x 1 x 4 um voxel grid with shot and read noise. Cells refract (dn = 0.02) so
+  the PSF degrades with depth; the medium is index-matched.
+seed: 42
+
+volume:
+  nx: 512
+  ny: 512
+  nz: 256
+  dx: 0.5          # simulation sampling; NA 0.5 needs dx < lbda/(2 NA) = 0.532 um
+  dz: 1.0
+
+phantom:
+  type: cells
+  n_cells: 2000
+  radius_um: [5.0, 9.0]
+  min_gap_um: 0.5
+  edge_um: 0.4
+  dn_cell: 0.02
+  margin_um: 1.0
+  brightness:
+    dist: lognormal
+    sigma: 0.6
+    clip: [0.08, 4.0]
+
+medium:
+  type: none
+
+optics:
+  nm: 1.33
+  na: 0.5
+  lbda: 0.532
+  directions: [[0.0, 0.0, 1.0]]
+
+emission:
+  n_iterations: 200
+  stochastic: false
+
+camera:
+  bin_xy: 2        # 0.5 -> 1.0 um
+  bin_z: 4         # 1.0 -> 4.0 um
+  photons_peak: 300.0
+  background_photons: 5.0
+  poisson: true
+  read_noise_e: 2.0
+  offset: 100.0
+  bit_depth: 16
+
+engine:
+  device: cuda:1
+  deterministic: false
+  log_dir: ./log
+  save_gt_volume: true
+  save_label_volume: true
+  save_fine_volume: false
+  save_gif: true

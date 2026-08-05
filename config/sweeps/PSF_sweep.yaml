@@ -1,0 +1,20 @@
+name: PSF_sweep
+description: >
+  PSF elongation sweep. Lowering NA stretches the PSF axially far faster than
+  laterally -- lateral FWHM ~ 0.5 lbda / NA, axial ~ lbda / (n - sqrt(n^2 - NA^2)) --
+  so cells stay about the same size in xy and stretch into cigars in z. No refraction
+  and no measurement noise, so the elongation is the only thing changing. 1920 draws,
+  which leaves ~1.5% residual speckle.
+base: config/base/reference_optics.yaml
+overrides:
+  volume.nz: 256              # 128 um deep: enough to see elongation, cheap at 1920 draws
+  phantom.n_cells: 250        # sparse, or the elongated cells merge in z
+  phantom.min_gap_um: 2.0
+  phantom.margin_um: 6.0
+  phantom.dn_cell: 0.0        # no refraction in this sweep
+  phantom.dn_noise_rms: 0.0
+  emission.n_iterations: 1920
+sweep:
+  parameter: optics.na
+  values: [1.0, 0.8, 0.6, 0.4, 0.3]
+  labels: [na100, na080, na060, na040, na030]

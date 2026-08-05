@@ -2,6 +2,8 @@
 Fluorescence microscopy simulation using Beam Propagation Method (BPM)
 with heterogeneous light propagation through biological tissue.
 """
+import os
+
 import numpy as np
 import torch
 import torch.nn.functional as nf
@@ -9,7 +11,7 @@ from tqdm import tqdm
 from skimage import io
 from tifffile import imwrite
 from dataclasses import dataclass, field
-from typing import List
+from typing import List, Optional
 
 
 @dataclass
@@ -29,10 +31,41 @@ class Config:
     output_path: str = './output'
     stochastic: bool = False      # Enable STORM/PALM mode
     sparsity: float = 0.005       # Fraction active fluorophores (0.5%)
-    
+    seed: Optional[int] = 42      # Monte Carlo seed; None = draw from entropy
+    deterministic: bool = False   # Also pin cuDNN/algorithm choice (see set_deterministic)
+    axial_incoherent: bool = True # Independent emission phase per plane (see forward)
+
     def __post_init__(self):
         if self.directions is None:
             self.directions = [[0, 0, 1]]  # Default: normal incidence
+
+
+def set_deterministic(seed: int) -> None:
+    """Pin every non-RNG source of run-to-run variation.
+
+    Seeding the phase draws makes the *inputs* repeatable; this makes the
+    *arithmetic* repeatable. cuFFT plan selection and any reduction kernel can
+    otherwise be chosen by timing, and float addition is not associative, so two
+    runs with identical inputs can still differ in the last bits and that
+    difference is amplified by accumulating 1000 Monte Carlo realizations.
+
+    CUBLAS_WORKSPACE_CONFIG has to be set before the CUDA context is created, so
+    entry points set it at import time; here we only check and warn, since
+    setting it at this point would silently be too late.
+
+    Note this does not reproduce a run made without it — the arithmetic differs.
+    It makes runs from here on repeatable.
+    """
+    if os.environ.get('CUBLAS_WORKSPACE_CONFIG') not in (':4096:8', ':16:8'):
+        print('\033[93m[determinism] CUBLAS_WORKSPACE_CONFIG unset — set it to '
+              ':4096:8 before torch initialises CUDA.\033[0m')
+
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False       # autotuning picks by timing
+    torch.use_deterministic_algorithms(True)
+    print(f'\033[92m[determinism] deterministic algorithms ON, seed={seed}\033[0m')
 
 
 def sqrt_cpx(t1):
@@ -62,13 +95,23 @@ class FluorescenceBPM(torch.nn.Module):
     - Split-step Fourier propagation
     """
     
-    def __init__(self, config: Config = None):
+    def __init__(self, config: Config = None, dn: 'torch.Tensor' = None,
+                 fluo: 'torch.Tensor' = None, pupil_aberration: 'torch.Tensor' = None):
+        """
+        Args:
+            config: simulation parameters
+            dn, fluo: optional [Nx, Ny, Nz] tensors to use instead of reading the
+                TIFF paths in the config. The dataset engine builds its volumes in
+                memory, and at 512x512x256 a disk round-trip is 250 MB per run.
+            pupil_aberration: optional complex [Nx, Ny] factor on the detection
+                pupil, in fftshifted k-order (see fluo_bpm.optics.zernike_pupil).
+        """
         super().__init__()
-        
+
         if config is None:
             config = Config()
         self.config = config
-        
+
         # Optical parameters
         self.nm = config.nm
         self.na = config.na
@@ -82,23 +125,31 @@ class FluorescenceBPM(torch.nn.Module):
         self.device = config.device
         self.dtype = torch.float32
         
-        # Load data
-        dn_volume = io.imread(config.refractive_index_path)
-        dn_volume = np.moveaxis(dn_volume, 0, -1)
-        self.dn = torch.tensor(dn_volume, device=self.device, dtype=self.dtype, requires_grad=False)
-        
-        fluo_volume = io.imread(config.fluorescence_path)
-        fluo_volume = np.moveaxis(fluo_volume, 0, -1)
-        self.fluo = torch.tensor(fluo_volume, device=self.device, dtype=self.dtype, requires_grad=False)
-        
+        # Load data (from memory if given, else from the TIFF paths)
+        if dn is None:
+            dn_volume = io.imread(config.refractive_index_path)
+            dn_volume = np.moveaxis(dn_volume, 0, -1)
+            self.dn = torch.tensor(dn_volume, device=self.device, dtype=self.dtype, requires_grad=False)
+        else:
+            self.dn = dn.to(device=self.device, dtype=self.dtype)
+
+        if fluo is None:
+            fluo_volume = io.imread(config.fluorescence_path)
+            fluo_volume = np.moveaxis(fluo_volume, 0, -1)
+            self.fluo = torch.tensor(fluo_volume, device=self.device, dtype=self.dtype, requires_grad=False)
+        else:
+            self.fluo = fluo.to(device=self.device, dtype=self.dtype)
+
+        self.pupil_aberration = pupil_aberration
+
         # Illumination directions
         self.directions = config.directions
-        
+
         # Volume parameters
         self.z_volume = np.arange(self.z_min, self.z_max, self.dz)
         self.Nz = len(self.z_volume)
-        self.Nx, self.Ny = dn_volume.shape[:2]
-        
+        self.Nx, self.Ny = self.dn.shape[:2]
+
         # Spatial frequencies
         int_x = np.arange(-self.Nx/2, self.Nx/2)
         int_y = np.arange(-self.Ny/2, self.Ny/2)
@@ -109,7 +160,24 @@ class FluorescenceBPM(torch.nn.Module):
         
         self.mux = torch.tensor(mux, dtype=self.dtype, device=self.device)
         self.muy = torch.tensor(muy, dtype=self.dtype, device=self.device)
-        
+
+        # Monte Carlo RNG. Owned by the model rather than taken from the global
+        # torch state, so a run is defined by (config, seed) alone and is not
+        # perturbed by any other torch.rand call in the process.
+        self.generator = torch.Generator(device=self.device)
+        if config.seed is None:
+            self.generator.seed()                     # entropy: run is not repeatable
+        else:
+            self.generator.manual_seed(int(config.seed))
+
+    def sample_phase(self):
+        """Random phase screen [Nx, Ny] for one incoherent emission realization."""
+        return torch.rand(
+            (self.Nx, self.Ny), dtype=self.dtype,
+            device=self.device, generator=self.generator,
+        ) * 2 * np.pi
+
+
     def fresnel_propagator(self, dz, direction=[0,0,1]):
         """
         Compute Fresnel propagator in k-space.
@@ -142,6 +210,10 @@ class FluorescenceBPM(torch.nn.Module):
         pupil_mask = (munu < (self.na / self.lbda)).float().squeeze()
         
         pupil = torch.complex(pupil_mask, torch.zeros_like(pupil_mask))
+        if self.pupil_aberration is not None:
+            # aberration belongs to the detection path only: the per-plane emission
+            # filter below stays the plain NA band limit
+            pupil = pupil * self.pupil_aberration.to(pupil.dtype)
         
         # Angle correction
         muxy = np.sqrt(fdir[0]**2 + fdir[1]**2) * self.lbda / self.nm
@@ -158,7 +230,11 @@ class FluorescenceBPM(torch.nn.Module):
         
         # Stochastic activation (STORM/PALM mode)
         if self.config.stochastic:
-            activation_mask = (torch.rand_like(self.fluo) < self.config.sparsity).float()
+            draw = torch.rand(
+                self.fluo.shape, dtype=self.dtype,
+                device=self.device, generator=self.generator,
+            )
+            activation_mask = (draw < self.config.sparsity).float()
             fluo_active = self.fluo * activation_mask
         else:
             fluo_active = self.fluo
@@ -167,12 +243,19 @@ class FluorescenceBPM(torch.nn.Module):
         fluo_layers = fluo_active.unbind(dim=2)
         
         # Forward propagation through volume
+        per_plane_phase = phi is None or self.config.axial_incoherent
         for i in range(self.Nz):
             # Phase from refractive index
             depha = field * torch.exp(dn_layers[i] * coef)
-            
-            # Fluorescence source term
-            S = torch.sqrt(fluo_layers[i]) * torch.exp(phi * 1.j)
+
+            # Fluorescence source term. The emission phase must be independent per
+            # plane, not one screen shared down the whole volume: sharing it makes
+            # every fluorophore in an (x, y) column perfectly in phase, so the ~30
+            # axial layers of one cell add coherently and interfere on axis. That
+            # puts Fresnel-zone rings at the centre of every cell, identically in
+            # every realization, so averaging more realizations cannot remove them.
+            phi_i = self.sample_phase() if per_plane_phase else phi
+            S = torch.sqrt(fluo_layers[i]) * torch.exp(phi_i * 1.j)
             S = torch.fft.ifftn(torch.fft.fftn(S) * pupil_mask)
             
             # Split-step: source + propagation
@@ -205,7 +288,9 @@ def run_simulation(
     device: str = 'cuda:0',
     directions: List[List[float]] = None,
     stochastic: bool = False,
-    sparsity: float = 0.005
+    sparsity: float = 0.005,
+    seed: Optional[int] = 42,
+    deterministic: bool = False
 ):
     """
     Run fluorescence simulation with Monte Carlo sampling.
@@ -226,7 +311,14 @@ def run_simulation(
         directions: List of illumination directions [[x,y,z], ...]
         stochastic: Enable STORM/PALM mode (sparse activation)
         sparsity: Fraction of active fluorophores per frame
+        seed: Monte Carlo seed; None draws from entropy (run not repeatable)
+        deterministic: Also pin cuDNN/algorithm selection (see set_deterministic)
     """
+    if deterministic:
+        if seed is None:
+            raise ValueError('deterministic=True requires an explicit seed')
+        set_deterministic(seed)
+
     config = Config(
         nm=nm, na=na, dx=dx, lbda=lbda, dz=dz,
         z_min=z_min, z_max=z_max, device=device,
@@ -235,7 +327,9 @@ def run_simulation(
         directions=directions,
         output_path=output_path,
         stochastic=stochastic,
-        sparsity=sparsity
+        sparsity=sparsity,
+        seed=seed,
+        deterministic=deterministic
     )
     
     # Initialize model
@@ -248,15 +342,12 @@ def run_simulation(
     print(f"Running {n_iterations} iterations ({mode} mode)...")
     if stochastic:
         print(f"Sparsity: {sparsity*100:.2f}% active fluorophores per frame")
-    
+    print(f"Seed: {seed if seed is not None else 'entropy (not repeatable)'}")
+
     for n in tqdm(range(n_iterations)):
-        # Random phase for incoherent emission
-        phi = torch.rand(
-            (model.Nx, model.Ny), 
-            dtype=torch.float32, 
-            device=device
-        ) * 2 * np.pi
-        
+        # Random phase for incoherent emission, from the model's own generator
+        phi = model.sample_phase()
+
         with torch.no_grad():
             I_total += model(field_number=0, phi=phi)
             

@@ -41,6 +41,10 @@ output/*
 !output/.gitkeep
 temp/
 
+# Engine run folders: the volumes are hundreds of MB each. archive/ keeps the
+# animations, figures, ground truth and code for every run and is tracked.
+log/
+
 # IDE
 .vscode/
 .idea/
@@ -51,3 +55,9 @@ temp/
 # OS
 .DS_Store
 Thumbs.db
+
+# LaTeX build artefacts of archive/note (the pdf itself is tracked)
+*.aux
+*.log
+*.out
+!archive/note/note.pdf
