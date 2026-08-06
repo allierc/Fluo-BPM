@@ -290,6 +290,38 @@ def figure_ri(path):
     return [(lab, dn, n, f) for (_, dn, lab), n, f in zip(RI_SWEEP, near, far)]
 
 
+def figure_ri_sweep(path, slab_um=1.5):
+    """One edge-on (xz) strip per arm, stacked: the sweep seen in the images.
+
+    Averaged over a thin slab in y (slab_um) because a single y plane at W = 240 is
+    mostly Monte-Carlo speckle; the averaging is over the display only, and it is the
+    same for every arm.
+    """
+    fig, axes = plt.subplots(len(RI_SWEEP), 1, figsize=(13.0, 7.4), facecolor='white')
+    letters = 'abcde'
+    for row, (tag, dn, label) in enumerate(RI_SWEEP):
+        d = load(tag, root='log/RI_sweep')
+        pe = d['pe']
+        vx, vy, vz = d['summary']['voxel_um']
+        nz, ny, nx = pe.shape
+        j = ny // 2
+        half = max(int(round(0.5 * slab_um / vy)), 0)
+        strip = pe[:, j - half:j + half + 1, :].mean(axis=1).T   # [x, z], z horizontal
+        ax = axes[row]
+        show(ax, strip, extent=[0, nz * vz, 0, nx * vx], lo=1, hi=99.9, gamma=0.85)
+        panel_title(ax, f'{letters[row]})  {label}', 10)
+        if row == 0:
+            scalebar(ax, 8, 6, 50.0, '50 um')
+        if row == len(RI_SWEEP) - 1:
+            ax.set_xlabel('depth [um]        far side (left)  ->  objective side (right)',
+                          color='black', fontsize=9)
+            ax.set_xticks([0, 100, 200, 300, nz * vz])
+            ax.tick_params(colors='black', labelsize=8)
+    fig.tight_layout()
+    fig.savefig(path, dpi=140, facecolor='white', bbox_inches='tight')
+    plt.close(fig)
+
+
 def figure_psf(path):
     """The same isolated cell in xy and xz at each NA, same crop, same scale."""
     arms = [(tag, na, load(tag, root='log/PSF_sweep')) for tag, na in PSF_SWEEP]
@@ -493,7 +525,7 @@ arm & contrast near objective & contrast far side & lost across the depth \\
 \end{center}
 
 At $dn = 0.02$ the far side has no cell contrast left at all while the near side keeps
-three quarters of the index-matched value (Figure~2). Two notes on measuring this.
+three quarters of the index-matched value (Figures~2 and~3). Two notes on measuring this.
 Gradient energy --- the obvious sharpness metric --- gives a near/far ratio of 1.00 to
 1.01 across the entire sweep and misses the effect completely, because in a stack this
 dense it is dominated by fine haze texture that survives; what refraction destroys is
@@ -523,7 +555,7 @@ NA & apparent lateral extent & apparent axial extent & axial / lateral \\
 \end{tabular}
 \end{center}
 
-Figure~3 shows it directly: $xy$ sections barely change while $xz$ sections stretch
+Figure~4 shows it directly: $xy$ sections barely change while $xz$ sections stretch
 into cigars.
 
 \textbf{Caveat throughout.} The reference is a confocal LSM 800 with a 2.54\,AU
@@ -551,15 +583,24 @@ which is off.}
 \end{figure}
 
 \begin{figure}[t]
+\centering\includegraphics[width=\textwidth]{ri_sweep.png}
+\caption*{\textbf{Figure 3.} The index sweep seen edge-on: an $xz$ strip through each
+arm, the full 384\,\textmu m of depth on the horizontal axis, far side on the left and
+objective on the right. Identical crop, scale and display range in every panel;
+averaged over 1.5\,\textmu m in $y$ for display, equally in all arms. The cells fade
+from the left as the index contrast rises, while the right-hand end holds.}
+\end{figure}
+
+\begin{figure}[t]
 \centering\includegraphics[width=\textwidth]{psf.png}
-\caption*{\textbf{Figure 3.} NA sweep, all panels the same isolated cell (the arms
+\caption*{\textbf{Figure 4.} NA sweep, all panels the same isolated cell (the arms
 share a seed) at the same physical scale. Top row $xy$, bottom row $xz$. Lower NA
 leaves $xy$ nearly unchanged and stretches $z$.}
 \end{figure}
 
 \begin{figure}[t]
 \centering\includegraphics[width=0.62\textwidth]{psf_extent.png}
-\caption*{\textbf{Figure 4.} Apparent cell extent, measured at half maximum through
+\caption*{\textbf{Figure 5.} Apparent cell extent, measured at half maximum through
 each cell's own centre, against NA.}
 \end{figure}
 
@@ -571,6 +612,7 @@ def main():
     OUT.mkdir(parents=True, exist_ok=True)
     mc = figure_mc(OUT / 'mc.png')
     ri = figure_ri(OUT / 'ri.png')
+    figure_ri_sweep(OUT / 'ri_sweep.png')
     psf = figure_psf(OUT / 'psf.png')
 
     ri_rows = '\n'.join(
